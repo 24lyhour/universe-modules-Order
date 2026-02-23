@@ -2,6 +2,7 @@
 
 namespace Modules\Order\Providers;
 
+use App\Services\MenuService;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Nwidart\Modules\Traits\PathNamespace;
@@ -27,6 +28,26 @@ class OrderServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+        $this->registerMenuItems();
+    }
+
+    /**
+     * Register menu items for the Order module.
+     */
+    protected function registerMenuItems(): void
+    {
+        $this->app->booted(function () {
+            MenuService::addMenuItem(
+                menu: 'primary',
+                id: 'order',
+                title: __('Order'),
+                url: route('order.index'),
+                icon: 'ShoppingCart',
+                order: 60,
+                permissions: 'orders.view_any',
+                route: 'order.*'
+            );
+        });
     }
 
     /**
