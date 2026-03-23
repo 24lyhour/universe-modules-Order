@@ -5,6 +5,14 @@ namespace Modules\Order\Providers;
 use App\Services\MenuService;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Modules\Order\Console\Commands\CartCreateCommand;
+use Modules\Order\Console\Commands\CartListCommand;
+use Modules\Order\Console\Commands\CartStatsCommand;
+use Modules\Order\Console\Commands\OrderCreateCommand;
+use Modules\Order\Console\Commands\OrderListCommand;
+use Modules\Order\Console\Commands\OrderPushCommand;
+use Modules\Order\Console\Commands\OrderSimulateCommand;
+use Modules\Order\Console\Commands\OrderStatsCommand;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -37,15 +45,64 @@ class OrderServiceProvider extends ServiceProvider
     protected function registerMenuItems(): void
     {
         $this->app->booted(function () {
+            // Add main menu item
             MenuService::addMenuItem(
-                menu: 'primary',
-                id: 'order',
-                title: __('Order'),
-                url: route('order.index'),
-                icon: 'ShoppingCart',
-                order: 60,
-                permissions: 'orders.view_any',
-                route: 'order.*'
+                'primary',
+                'order',
+                __('Orders'),
+                route('order.orders.index'),
+                'ShoppingBag',
+                60,
+                'orders.view_any',
+                'order.*'
+            );
+
+            // All Orders submenu
+            MenuService::addSubmenuItem(
+                'primary',
+                'order',
+                __('All Orders'),
+                route('order.orders.index'),
+                1,
+                'orders.view_any',
+                'order.orders.*',
+                'Package'
+            );
+
+            // Carts submenu
+            MenuService::addSubmenuItem(
+                'primary',
+                'order',
+                __('Carts'),
+                route('order.carts.index'),
+                2,
+                'carts.view_any',
+                'order.carts.*',
+                'ShoppingCart'
+            );
+
+            // Product Reviews submenu
+            MenuService::addSubmenuItem(
+                'primary',
+                'order',
+                __('Product Reviews'),
+                route('order.product-reviews.index'),
+                3,
+                'product_reviews.view_any',
+                'order.product-reviews.*',
+                'Star'
+            );
+
+            // Outlet Reviews submenu
+            MenuService::addSubmenuItem(
+                'primary',
+                'order',
+                __('Outlet Reviews'),
+                route('order.outlet-reviews.index'),
+                4,
+                'outlet_reviews.view_any',
+                'order.outlet-reviews.*',
+                'Store'
             );
         });
     }
@@ -64,7 +121,16 @@ class OrderServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            OrderCreateCommand::class,
+            OrderListCommand::class,
+            OrderPushCommand::class,
+            OrderSimulateCommand::class,
+            OrderStatsCommand::class,
+            CartCreateCommand::class,
+            CartListCommand::class,
+            CartStatsCommand::class,
+        ]);
     }
 
     /**
