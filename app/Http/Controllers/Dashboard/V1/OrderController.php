@@ -80,7 +80,7 @@ class OrderController extends Controller
      */
     public function show(Order $order): Response
     {
-        $order->load(['customer', 'outlet', 'items.product']);
+        $order->load(['customer', 'outlet', 'items.product', 'shipping']);
 
         return Inertia::render('order::Dashboard/V1/Order/Show', [
             'order' => (new OrderResource($order))->resolve(),
@@ -92,7 +92,7 @@ class OrderController extends Controller
      */
     public function edit(Order $order): Modal
     {
-        $order->load(['customer', 'outlet', 'items']);
+        $order->load(['customer', 'outlet', 'items', 'shipping']);
         $outlets = Outlet::select('id', 'name')->orderBy('name')->get();
         $customers = Customer::select('id', 'name', 'email')->orderBy('name')->get();
 
@@ -128,11 +128,29 @@ class OrderController extends Controller
     }
 
     /**
+     * Show order status action modal.
+     */
+    public function statusModal(Order $order): Modal
+    {
+        $order->load(['customer', 'outlet', 'items.product', 'shipping']);
+
+        return Inertia::modal('order::Dashboard/V1/Order/OrderAction', [
+            'order' => (new OrderResource($order))->resolve(),
+        ])->baseRoute('order.orders.index');
+    }
+
+    /**
      * Update order status.
      */
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order): RedirectResponse
     {
         $this->orderService->updateStatus($order, $request->validated()['status']);
+
+        // If from modal, redirect to index; otherwise redirect back (for Show page)
+        if ($request->boolean('from_modal')) {
+            return redirect()->route('order.orders.index')
+                ->with('success', 'Order status updated successfully.');
+        }
 
         return redirect()->back()->with('success', 'Order status updated successfully.');
     }
@@ -143,6 +161,12 @@ class OrderController extends Controller
     public function updatePaymentStatus(UpdatePaymentStatusRequest $request, Order $order): RedirectResponse
     {
         $this->orderService->updatePaymentStatus($order, $request->validated()['payment_status']);
+
+        // If from modal, redirect to index; otherwise redirect back (for Show page)
+        if ($request->boolean('from_modal')) {
+            return redirect()->route('order.orders.index')
+                ->with('success', 'Payment status updated successfully.');
+        }
 
         return redirect()->back()->with('success', 'Payment status updated successfully.');
     }

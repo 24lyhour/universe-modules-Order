@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\OrderStatusEnum;
@@ -20,6 +21,14 @@ class Order extends Model
      * The table associated with the model.
      */
     protected $table = 'order_orders';
+
+    /**
+     * Get the route key for the model (use UUID instead of ID).
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -41,6 +50,7 @@ class Order extends Model
         'shipped_at',
         'delivered_at',
         'cancelled_at',
+        'completed_at',
     ];
 
     /**
@@ -54,6 +64,7 @@ class Order extends Model
         'shipped_at'      => 'datetime',
         'delivered_at'    => 'datetime',
         'cancelled_at'    => 'datetime',
+        'completed_at'    => 'datetime',
         'status'          => OrderStatusEnum::class,
         'payment_status'  => PaymentStatusEnum::class,
     ];
@@ -117,6 +128,14 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Get the shipping information for the order.
+     */
+    public function shipping(): HasOne
+    {
+        return $this->hasOne(OrderShipping::class);
     }
 
     /**

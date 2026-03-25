@@ -24,6 +24,60 @@ export interface OrderItem {
     items?: OrderItemDetail[];
     items_count?: number;
     total_quantity?: number;
+    shipping?: OrderShippingInfo | null;
+}
+
+// Partial order for action forms (accepts both full and minimal data)
+export interface OrderActionData {
+    id: number;
+    order_number: string;
+    status: string;
+    payment_status: string;
+    uuid?: string;
+    customer_id?: number | null;
+    outlet_id?: number | null;
+    cart_id?: number | null;
+    subtotal?: number;
+    discount_amount?: number;
+    tax_amount?: number;
+    shipping_cost?: number;
+    total_amount?: number;
+    payment_method?: string | null;
+    notes?: string | null;
+    shipped_at?: string | null;
+    delivered_at?: string | null;
+    cancelled_at?: string | null;
+    completed_at?: string | null;
+    created_at?: string;
+    updated_at?: string;
+    customer?: CustomerInfo | null;
+    outlet?: OutletInfo | null;
+    items?: OrderItemDetail[];
+    items_count?: number;
+    total_quantity?: number;
+    shipping?: OrderShippingInfo | null;
+}
+
+// Order shipping info
+export interface OrderShippingInfo {
+    id: number;
+    carrier?: string | null;
+    method?: string | null;
+    shipping_cost?: number;
+    tracking_number?: string | null;
+    recipient_name?: string | null;
+    phone?: string | null;
+    street_1?: string | null;
+    street_2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    estimated_delivery_at?: string | null;
+    shipped_at?: string | null;
+    delivered_at?: string | null;
 }
 
 export interface OrderItemDetail {
@@ -41,7 +95,7 @@ export interface OrderItemDetail {
 }
 
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'partial';
 
 // Cart types
 export interface CartItem {
@@ -87,6 +141,9 @@ export interface CustomerInfo {
 export interface OutletInfo {
     id: number;
     name: string;
+    address?: string | null;
+    phone?: string | null;
+    google_map_url?: string | null;
 }
 
 export interface ProductInfo {
@@ -127,6 +184,7 @@ export interface OrderStats {
     delivered: number;
     completed: number;
     cancelled: number;
+    refunded: number;
     total_revenue: number;
     payment_pending: number;
     payment_paid: number;

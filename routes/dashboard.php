@@ -17,6 +17,8 @@ Route::middleware(['auth', 'verified', 'auto.permission'])
             ->parameters(['orders' => 'order']);
 
         // Order Status Updates
+        Route::get('orders/{order}/status', [OrderController::class, 'statusModal'])
+            ->name('order.orders.status-modal');
         Route::put('orders/{order}/status', [OrderController::class, 'updateStatus'])
             ->name('order.orders.update-status');
         Route::put('orders/{order}/payment-status', [OrderController::class, 'updatePaymentStatus'])

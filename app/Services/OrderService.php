@@ -174,7 +174,6 @@ class OrderService
             OrderStatusEnum::Delivering->value, 'delivering' => $updateData['shipped_at'] = now(),
             OrderStatusEnum::Delivered->value, 'delivered' => $updateData['delivered_at'] = now(),
             OrderStatusEnum::Cancelled->value, 'cancelled' => $updateData['cancelled_at'] = now(),
-            OrderStatusEnum::Completed->value, 'completed' => $updateData['completed_at'] = now(),
             default => null,
         };
 
@@ -222,6 +221,7 @@ class OrderService
                 'delivered' => Order::where('status', OrderStatusEnum::Delivered)->count(),
                 'completed' => Order::where('status', OrderStatusEnum::Completed)->count(),
                 'cancelled' => Order::where('status', OrderStatusEnum::Cancelled)->count(),
+                'refunded' => Order::where('status', OrderStatusEnum::Refunded)->count(),
                 'total_revenue' => Order::where('payment_status', PaymentStatusEnum::Paid)->sum('total_amount'),
                 'payment_pending' => Order::where('payment_status', PaymentStatusEnum::Pending)->count(),
                 'payment_paid' => Order::where('payment_status', PaymentStatusEnum::Paid)->count(),

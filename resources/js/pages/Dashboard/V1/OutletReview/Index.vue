@@ -16,34 +16,34 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ReviewStatsWidget, OutletReviewCard } from '@modules/Order/resources/js/Components/Dashboard/V1/Widgets/ReplyFormWidget';
+import { ReviewStatsWidget, OutletReviewCard } from '@order/Components/Dashboard/V1/Widgets/ReplyFormWidget';
 
 const { __ } = useTranslation();
 
 interface OutletReviewItem {
     id: number;
-    uuid: string;
-    customer_id: number;
-    outlet_id: number;
+    uuid?: string;
+    customer_id?: number;
+    outlet_id?: number;
     overall_rating: number;
     food_rating: number | null;
     service_rating: number | null;
     delivery_rating: number | null;
     packaging_rating: number | null;
     comment: string | null;
-    tags: string[];
+    tags?: string[];
     reply: string | null;
     is_active: boolean;
-    is_verified: boolean;
-    helpful_count: number;
+    is_verified?: boolean;
+    helpful_count?: number;
     created_at: string;
     customer?: { id: number; name: string; avatar?: string; total_spend?: number; total_reviews?: number };
     outlet?: { id: number; name: string };
     order?: { id: number; order_number: string };
     formatted_date: string;
     has_reply: boolean;
-    average_rating: number;
-    tag_labels: string[];
+    average_rating?: number;
+    tag_labels?: string[];
 }
 
 interface Props {
@@ -153,7 +153,7 @@ const handleDelete = () => {
 };
 
 const openDeleteModal = (review: OutletReviewItem) => {
-    selectedItem.value = review as OutletReviewItem;
+    selectedItem.value = review;
     isDeleteModalOpen.value = true;
 };
 </script>

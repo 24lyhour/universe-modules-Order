@@ -165,11 +165,15 @@ enum OrderStatusEnum: string
 
     /**
      * Get next allowed statuses (workflow transitions).
+     *
+     * Note: Pending can go directly to Preparing (auto-confirm for efficiency).
+     * This is common in food delivery apps like Grab/Foodpanda.
      */
     public function nextStatuses(): array
     {
         return match ($this) {
-            self::Pending => [self::Confirmed, self::Cancelled],
+            // Pending can go to Confirmed, Preparing (auto-confirm), or Cancelled
+            self::Pending => [self::Confirmed, self::Preparing, self::Cancelled],
             self::Confirmed => [self::Preparing, self::Cancelled],
             self::Preparing => [self::Ready, self::Cancelled],
             self::Ready => [self::Delivering, self::Cancelled],

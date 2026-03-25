@@ -50,10 +50,11 @@ const pendingAction = ref<{
     variant: 'default' | 'danger';
 } | null>(null);
 
-// Status workflow (Cambodia e-commerce - simplified)
-// Pending → Preparing → Ready → Delivering → Delivered → Completed
+// Status workflow (matches OrderStatusEnum)
+// Pending → Confirmed → Preparing → Ready → Delivering → Delivered → Completed
 const statusFlow: Record<string, { next: string; label: string; icon: typeof Clock } | null> = {
-    pending: { next: 'preparing', label: 'Confirm & Prepare', icon: ChefHat },
+    pending: { next: 'confirmed', label: 'Confirm Order', icon: CheckCircle },
+    confirmed: { next: 'preparing', label: 'Start Preparing', icon: ChefHat },
     preparing: { next: 'ready', label: 'Mark Ready', icon: Package },
     ready: { next: 'delivering', label: 'Start Delivery', icon: Truck },
     delivering: { next: 'delivered', label: 'Mark Delivered', icon: PackageCheck },
@@ -65,10 +66,16 @@ const statusFlow: Record<string, { next: string; label: string; icon: typeof Clo
 
 // Action modal info for each status transition
 const actionInfo: Record<string, { title: string; description: string; confirmText: string; variant: 'default' | 'danger' }> = {
+    confirmed: {
+        title: 'Confirm Order',
+        description: `Accept order ${props.order.order_number}? The customer will be notified.`,
+        confirmText: 'Confirm Order',
+        variant: 'default',
+    },
     preparing: {
-        title: 'Confirm & Start Preparing',
-        description: `Accept order ${props.order.order_number} and start preparing? The customer will be notified.`,
-        confirmText: 'Confirm & Prepare',
+        title: 'Start Preparing',
+        description: `Start preparing order ${props.order.order_number}? The customer will be notified.`,
+        confirmText: 'Start Preparing',
         variant: 'default',
     },
     ready: {
@@ -113,9 +120,9 @@ const currentStatusAction = computed(() => {
     return statusFlow[props.order.status] || null;
 });
 
-// Cancel only available for PENDING orders (not yet confirmed)
+// Cancel available until delivered (matches OrderStatusEnum.canBeCancelled())
 const canCancel = computed(() => {
-    return props.order.status === 'pending';
+    return ['pending', 'confirmed', 'preparing', 'ready', 'delivering'].includes(props.order.status);
 });
 
 // Refund available for delivered/completed orders
@@ -126,6 +133,7 @@ const canRefund = computed(() => {
 const getStatusVariant = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
         pending: 'outline',
+        confirmed: 'secondary',
         preparing: 'default',
         ready: 'default',
         delivering: 'default',
@@ -150,6 +158,7 @@ const getPaymentStatusVariant = (status: string) => {
 const getStatusIcon = (status: string) => {
     const icons: Record<string, typeof Clock> = {
         pending: Clock,
+        confirmed: CheckCircle,
         preparing: ChefHat,
         ready: Package,
         delivering: Truck,
@@ -180,7 +189,7 @@ const formatDate = (date: string | null) => {
 };
 
 const handleEdit = () => {
-    router.visit(`/dashboard/orders/${props.order.id}/edit`);
+    router.visit(`/dashboard/orders/${props.order.uuid}/edit`);
 };
 
 const handleBack = () => {
@@ -213,12 +222,12 @@ const handleRefundClick = () => {
     openActionModal('refunded');
 };
 
-// Confirm action from modal
+// Confirm action from modal (use UUID for route)
 const confirmAction = () => {
     if (!pendingAction.value) return;
 
     isUpdating.value = true;
-    router.put(`/dashboard/orders/${props.order.id}/status`, {
+    router.put(`/dashboard/orders/${props.order.uuid}/status`, {
         status: pendingAction.value.status,
     }, {
         onSuccess: () => {
@@ -237,7 +246,7 @@ const confirmAction = () => {
 
 const handleMarkPaid = () => {
     isUpdating.value = true;
-    router.put(`/dashboard/orders/${props.order.id}/payment-status`, {
+    router.put(`/dashboard/orders/${props.order.uuid}/payment-status`, {
         payment_status: 'paid',
     }, {
         onSuccess: () => {
@@ -249,12 +258,13 @@ const handleMarkPaid = () => {
     });
 };
 
-// Helper function for progress bar (5-step flow)
+// Helper function for progress bar (7-step flow)
 const getProgressPercent = (status: string): number => {
     const progress: Record<string, number> = {
         pending: 0,
-        preparing: 20,
-        ready: 40,
+        confirmed: 15,
+        preparing: 30,
+        ready: 45,
         delivering: 60,
         delivered: 80,
         completed: 100,
@@ -377,6 +387,7 @@ const getProgressPercent = (status: string): number => {
                         <div class="mt-6">
                             <div class="flex justify-between text-xs text-muted-foreground mb-2">
                                 <span>Pending</span>
+                                <span>Confirmed</span>
                                 <span>Preparing</span>
                                 <span>Ready</span>
                                 <span>Delivering</span>
@@ -502,6 +513,53 @@ const getProgressPercent = (status: string): number => {
                     </CardHeader>
                     <CardContent>
                         <p class="font-medium">{{ order.outlet.name }}</p>
+                    </CardContent>
+                </Card>
+
+                <!-- Shipping Info -->
+                <Card v-if="order.shipping">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <Truck class="h-5 w-5" />
+                            Shipping
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <div v-if="order.shipping.recipient_name">
+                            <p class="text-sm text-muted-foreground">Recipient</p>
+                            <p class="text-sm font-medium">{{ order.shipping.recipient_name }}</p>
+                            <p v-if="order.shipping.phone" class="text-sm text-muted-foreground">{{ order.shipping.phone }}</p>
+                        </div>
+                        <div v-if="order.shipping.street_1">
+                            <p class="text-sm text-muted-foreground">Address</p>
+                            <p class="text-sm font-medium">
+                                {{ order.shipping.street_1 }}
+                                <span v-if="order.shipping.street_2">, {{ order.shipping.street_2 }}</span>
+                            </p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ [order.shipping.city, order.shipping.state, order.shipping.postal_code].filter(Boolean).join(', ') }}
+                            </p>
+                            <p v-if="order.shipping.country" class="text-sm text-muted-foreground">{{ order.shipping.country }}</p>
+                        </div>
+                        <div v-if="order.shipping.carrier || order.shipping.method">
+                            <p class="text-sm text-muted-foreground">Carrier</p>
+                            <p class="text-sm font-medium">
+                                {{ order.shipping.carrier || 'N/A' }}
+                                <span v-if="order.shipping.method"> - {{ order.shipping.method }}</span>
+                            </p>
+                        </div>
+                        <div v-if="order.shipping.tracking_number">
+                            <p class="text-sm text-muted-foreground">Tracking</p>
+                            <p class="text-sm font-medium font-mono">{{ order.shipping.tracking_number }}</p>
+                        </div>
+                        <div v-if="order.shipping.shipping_cost">
+                            <p class="text-sm text-muted-foreground">Shipping Cost</p>
+                            <p class="text-sm font-medium">{{ formatCurrency(order.shipping.shipping_cost) }}</p>
+                        </div>
+                        <div v-if="order.shipping.latitude && order.shipping.longitude" class="pt-2">
+                            <p class="text-sm text-muted-foreground">GPS Coordinates</p>
+                            <p class="text-sm font-mono">{{ order.shipping.latitude }}, {{ order.shipping.longitude }}</p>
+                        </div>
                     </CardContent>
                 </Card>
 
