@@ -10,6 +10,9 @@ use Modules\Order\Enums\PaymentStatusEnum;
 use Modules\Order\Models\Cart;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
+use Modules\Order\Models\OrderShipping;
+use Modules\Order\Models\ShippingZone;
+use Modules\Outlet\Models\Outlet;
 
 class OrderService
 {
@@ -235,5 +238,84 @@ class OrderService
     public function clearStatsCache(): void
     {
         Cache::forget('order_stats');
+    }
+
+    /**
+     * Create shipping for an order with automatic zone detection.
+     */
+    public function createShipping(Order $order, array $shippingData): OrderShipping
+    {
+        $lat = $shippingData['latitude'] ?? null;
+        $lng = $shippingData['longitude'] ?? null;
+        $outletId = $order->outlet_id;
+
+        // Find best shipping zone for this location
+        $zone = null;
+        $deliveryFee = $shippingData['shipping_cost'] ?? 0;
+        $distanceKm = null;
+
+        if ($lat && $lng && $outletId) {
+            $zone = ShippingZone::getBestZoneForPoint((float) $lat, (float) $lng, $outletId);
+
+            if ($zone) {
+                // Calculate delivery fee and distance
+                $outlet = Outlet::find($outletId);
+                if ($outlet && $outlet->latitude && $outlet->longitude) {
+                    $distanceKm = $zone->getDistanceToPoint((float) $lat, (float) $lng);
+                }
+
+                // Use zone's calculated fee unless explicitly provided
+                if (!isset($shippingData['shipping_cost'])) {
+                    $deliveryFee = $zone->calculateDeliveryFee(
+                        (float) $lat,
+                        (float) $lng,
+                        $order->total_amount
+                    );
+                }
+            }
+        }
+
+        return OrderShipping::create([
+            'order_id' => $order->id,
+            'shipping_zone_id' => $zone?->id,
+            'carrier' => $shippingData['carrier'] ?? null,
+            'method' => $shippingData['method'] ?? null,
+            'shipping_cost' => $deliveryFee,
+            'tracking_number' => $shippingData['tracking_number'] ?? null,
+            'recipient_name' => $shippingData['recipient_name'],
+            'phone' => $shippingData['phone'] ?? null,
+            'street_1' => $shippingData['street_1'],
+            'street_2' => $shippingData['street_2'] ?? null,
+            'city' => $shippingData['city'],
+            'state' => $shippingData['state'] ?? null,
+            'postal_code' => $shippingData['postal_code'] ?? null,
+            'country' => $shippingData['country'] ?? 'Cambodia',
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'distance_km' => $distanceKm,
+            'weight' => $shippingData['weight'] ?? null,
+            'notes' => $shippingData['notes'] ?? null,
+            'estimated_delivery_at' => $zone
+                ? now()->addMinutes($zone->estimated_delivery_minutes)
+                : ($shippingData['estimated_delivery_at'] ?? null),
+        ]);
+    }
+
+    /**
+     * Check if delivery is available for a location.
+     */
+    public function checkDeliveryAvailability(float $lat, float $lng, ?int $outletId = null): ?array
+    {
+        return ShippingZone::getDeliveryInfo($lat, $lng, $outletId);
+    }
+
+    /**
+     * Calculate delivery fee for a location.
+     */
+    public function calculateDeliveryFee(float $lat, float $lng, int $outletId, float $orderAmount = 0): ?float
+    {
+        $info = ShippingZone::getDeliveryInfo($lat, $lng, $outletId, $orderAmount);
+
+        return $info ? $info['delivery_fee'] : null;
     }
 }

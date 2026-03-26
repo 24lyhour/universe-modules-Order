@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Str;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\OrderStatusEnum;
@@ -108,10 +109,11 @@ class Order extends Model
 
     /**
      * Get the outlet associated with the order.
+     * Note: Uses withoutGlobalScopes to bypass IsTenant scope so tenant users can see order's outlet.
      */
     public function outlet(): BelongsTo
     {
-        return $this->belongsTo(Outlet::class);
+        return $this->belongsTo(Outlet::class)->withoutGlobalScopes();
     }
 
     /**
@@ -136,6 +138,53 @@ class Order extends Model
     public function shipping(): HasOne
     {
         return $this->hasOne(OrderShipping::class);
+    }
+
+    /**
+     * Get the shipping zone through shipping relation.
+     */
+    public function shippingZone(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            ShippingZone::class,
+            OrderShipping::class,
+            'order_id',           // Foreign key on OrderShipping
+            'id',                 // Foreign key on ShippingZone
+            'id',                 // Local key on Order
+            'shipping_zone_id'    // Local key on OrderShipping
+        );
+    }
+
+    /**
+     * Get product reviews for this order.
+     */
+    public function productReviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    /**
+     * Get outlet review for this order (one order = one outlet review).
+     */
+    public function outletReview(): HasOne
+    {
+        return $this->hasOne(OutletReview::class);
+    }
+
+    /**
+     * Get refunds for this order.
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * Get transactions for this order.
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
     }
 
     /**

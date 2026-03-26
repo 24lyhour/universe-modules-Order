@@ -82,9 +82,12 @@ class OutletReview extends Model
         return $this->belongsTo(Order::class);
     }
 
+    /**
+     * Note: Uses withoutGlobalScopes to bypass IsTenant scope.
+     */
     public function outlet(): BelongsTo
     {
-        return $this->belongsTo(Outlet::class);
+        return $this->belongsTo(Outlet::class)->withoutGlobalScopes();
     }
 
     public function scopeActive($query)

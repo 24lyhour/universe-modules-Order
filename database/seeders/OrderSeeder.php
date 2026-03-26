@@ -156,11 +156,9 @@ class OrderSeeder extends Seeder
                 'total_amount' => $subtotal + $taxAmount - ($order->discount_amount ?? 0),
             ]);
 
-            // Create shipping record for orders that need it
-            if ($this->shouldHaveShipping($orderStatus)) {
-                $this->createShipping($order, $customer, $timestamps);
-                $shippingCount++;
-            }
+            // Create shipping record for ALL orders (so map route always shows)
+            $this->createShipping($order, $customer, $timestamps);
+            $shippingCount++;
         }
 
         $this->command->info('OrderSeeder: Created ' . Order::count() . ' orders with items and ' . $shippingCount . ' shipping records.');

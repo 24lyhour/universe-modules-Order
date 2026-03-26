@@ -241,7 +241,7 @@ const getPaymentMethodIcon = (method: string | null) => {
 // Build card actions for each order
 const getCardActions = (order: OrderItem): CardAction[] => [
     { label: 'View Details', icon: Eye, onClick: () => handleView(order) },
-    { label: 'Update Status', icon: RefreshCw, onClick: () => handleUpdateStatus(order) },
+    { label: 'Order Action', icon: RefreshCw, onClick: () => handleUpdateStatus(order) },
     { label: 'Edit Order', icon: Pencil, onClick: () => handleEdit(order), separator: true },
     { label: 'Delete', icon: Trash2, onClick: () => handleDeleteClick(order), variant: 'destructive' },
 ];

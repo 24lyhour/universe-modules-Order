@@ -11,10 +11,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('Order_Refund', function (Blueprint $table) {
+        Schema::create('order_refunds', function (Blueprint $table) {
             $table->id();
-            
+            $table->uuid('uuid')->unique();
+            $table->string('refund_number')->unique();
+
+            $table->foreignId('order_id')->constrained('order_orders')->cascadeOnDelete();
+            $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
+            $table->foreignId('outlet_id')->nullable()->constrained('outlets')->nullOnDelete();
+
+            $table->decimal('amount', 10, 2);
+            $table->text('reason')->nullable();
+            $table->text('notes')->nullable();
+
+            $table->string('status')->default('pending');
+
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('approved_at')->nullable();
+            $table->timestamp('processed_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamp('rejected_at')->nullable();
+            $table->text('rejection_reason')->nullable();
+
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('status');
+            $table->index('refund_number');
         });
     }
 
@@ -23,6 +46,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('Order_Refund');
+        Schema::dropIfExists('order_refunds');
     }
 };

@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/composables/useToast';
 import { ModalConfirm } from '@/components/shared';
+import { OrderShippingWidget } from '@order/Components/Dashboard/V1/Widgets/OrderActionFormWidget';
 import type { OrderItem } from '@order/types';
 
 defineOptions({
@@ -453,6 +454,14 @@ const getProgressPercent = (status: string): number => {
                         <p class="whitespace-pre-wrap text-muted-foreground">{{ order.notes }}</p>
                     </CardContent>
                 </Card>
+
+                <!-- Delivery Route Map -->
+                <OrderShippingWidget
+                    :shipping="order.shipping"
+                    :outlet="order.outlet"
+                    :customer="order.customer"
+                    :status="order.status"
+                />
             </div>
 
             <!-- Sidebar -->

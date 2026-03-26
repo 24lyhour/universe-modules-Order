@@ -22,24 +22,36 @@ defineOptions({
         ]}, () => page),
 });
 
+// Use v-model pattern with momentum-modal
 const isOpen = computed({
     get: () => show.value,
     set: (val: boolean) => {
         if (!val) {
-            close();
-            redirect();
+            handleClose();
         }
     },
 });
+
+const handleClose = () => {
+    close();
+    redirect();
+};
 
 const handleSuccess = () => {
     close();
     redirect();
 };
+
+// Safe order number for title
+const pageTitle = computed(() => {
+    return props.order?.order_number
+        ? `Update Status - ${props.order.order_number}`
+        : 'Update Order Status';
+});
 </script>
 
 <template>
-    <Head :title="`Update Status - ${order.order_number}`" />
+    <Head :title="pageTitle" />
 
     <OrderActionForm
         v-model:open="isOpen"

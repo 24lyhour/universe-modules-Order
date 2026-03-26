@@ -16,6 +16,7 @@ class OrderDatabaseSeeder extends Seeder
             OrderSeeder::class,
             ProductReviewSeeder::class,
             OutletReviewSeeder::class,
+            ShippingZoneSeeder::class,
         ]);
     }
 }

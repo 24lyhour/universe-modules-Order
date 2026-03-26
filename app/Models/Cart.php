@@ -76,10 +76,11 @@ class Cart extends Model
 
     /**
      * Get the outlet associated with the cart.
+     * Note: Uses withoutGlobalScopes to bypass IsTenant scope.
      */
     public function outlet(): BelongsTo
     {
-        return $this->belongsTo(Outlet::class);
+        return $this->belongsTo(Outlet::class)->withoutGlobalScopes();
     }
 
     /**
