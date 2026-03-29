@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Order\Http\Controllers\Api\V1\CartController;
 use Modules\Order\Http\Controllers\Api\V1\OutletReviewController;
 use Modules\Order\Http\Controllers\Api\V1\ProductReviewController;
 
@@ -35,6 +36,19 @@ Route::prefix('v1')->group(function () {
 
 // Protected routes (auth required)
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+    // ==================== CART ====================
+    Route::get('customer/cart', [CartController::class, 'index'])
+        ->name('order.customer.cart');
+    Route::post('customer/cart', [CartController::class, 'store'])
+        ->name('order.customer.cart.store');
+    Route::put('customer/cart/{itemId}', [CartController::class, 'update'])
+        ->name('order.customer.cart.update');
+    Route::delete('customer/cart/{itemId}', [CartController::class, 'destroy'])
+        ->name('order.customer.cart.destroy');
+    Route::delete('customer/cart', [CartController::class, 'clear'])
+        ->name('order.customer.cart.clear');
+
+    // ==================== PRODUCT REVIEWS ====================
     // Customer's own product reviews
     Route::get('customer/reviews', [ProductReviewController::class, 'myReviews'])
         ->name('order.customer.product-reviews');
