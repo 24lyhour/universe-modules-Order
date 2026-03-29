@@ -11,6 +11,11 @@ class OrderDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            CartSeeder::class,
+            OrderSeeder::class,
+            ProductReviewSeeder::class,
+            OutletReviewSeeder::class,
+        ]);
     }
 }
