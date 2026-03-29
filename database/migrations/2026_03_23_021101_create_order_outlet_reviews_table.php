@@ -18,10 +18,11 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
 
-            // Relationships
-            $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
+            // Cross-database references (customers & outlets live in universe DB)
+            $table->unsignedBigInteger('customer_id')->index();
+            $table->unsignedBigInteger('outlet_id')->index();
+            // Same-database reference
             $table->foreignId('order_id')->constrained('order_orders')->cascadeOnDelete();
-            $table->foreignId('outlet_id')->constrained()->cascadeOnDelete();
 
             // Rating categories (like Grab/Foodpanda)
             $table->tinyInteger('overall_rating')->unsigned()->comment('1-5 stars overall');

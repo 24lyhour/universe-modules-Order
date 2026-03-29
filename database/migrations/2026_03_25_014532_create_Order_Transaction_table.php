@@ -16,9 +16,11 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->string('transaction_number')->unique();
 
+            // Same-database references
             $table->foreignId('order_id')->nullable()->constrained('order_orders')->nullOnDelete();
             $table->foreignId('refund_id')->nullable()->constrained('order_refunds')->nullOnDelete();
-            $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
+            // Cross-database reference (customers live in universe DB)
+            $table->unsignedBigInteger('customer_id')->nullable()->index();
 
             $table->string('type')->default('payment'); // payment, refund
             $table->string('payment_method')->nullable();

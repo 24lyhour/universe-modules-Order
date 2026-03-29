@@ -16,9 +16,9 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
 
-            // Relationships
-            $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('outlet_id')->nullable()->constrained()->nullOnDelete();
+            // Cross-database references (customers & outlets live in universe DB)
+            $table->unsignedBigInteger('customer_id')->nullable()->index();
+            $table->unsignedBigInteger('outlet_id')->nullable()->index();
 
             // Data
             $table->enum('status', ['active', 'abandoned', 'converted', 'expired'])->default('active');
@@ -41,7 +41,8 @@ return new class extends Migration
 
             // Relationships
             $table->foreignId('cart_id')->constrained('order_carts')->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            // Cross-database reference (products live in universe DB)
+            $table->unsignedBigInteger('product_id')->index();
 
             // Data
             $table->integer('quantity')->default(1);

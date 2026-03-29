@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
 
-            // Relation to outlet (each outlet can have multiple delivery zones)
-            $table->foreignId('outlet_id')->constrained('outlets')->cascadeOnDelete();
+            // Cross-database reference (outlets live in universe DB)
+            $table->unsignedBigInteger('outlet_id')->index();
 
             // Zone info
             $table->string('name');
@@ -63,9 +63,9 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->unsignedSmallInteger('priority')->default(0); // Lower = higher priority
 
-            // ========== AUDIT ==========
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            // Cross-database references (users live in universe DB)
+            $table->unsignedBigInteger('created_by')->nullable()->index();
+            $table->unsignedBigInteger('updated_by')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();

@@ -16,9 +16,11 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->string('refund_number')->unique();
 
+            // Same-database reference
             $table->foreignId('order_id')->constrained('order_orders')->cascadeOnDelete();
-            $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
-            $table->foreignId('outlet_id')->nullable()->constrained('outlets')->nullOnDelete();
+            // Cross-database references (customers, outlets, users live in universe DB)
+            $table->unsignedBigInteger('customer_id')->nullable()->index();
+            $table->unsignedBigInteger('outlet_id')->nullable()->index();
 
             $table->decimal('amount', 10, 2);
             $table->text('reason')->nullable();
@@ -26,7 +28,7 @@ return new class extends Migration
 
             $table->string('status')->default('pending');
 
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('approved_by')->nullable()->index();
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamp('completed_at')->nullable();
