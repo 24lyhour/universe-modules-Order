@@ -2,6 +2,7 @@
 
 namespace Modules\Order\Models;
 
+use App\Traits\BelongsToTenantModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,7 @@ use Modules\Outlet\Models\Outlet;
 
 class Cart extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToTenantModel;
 
     /**
      * The table associated with the model.

@@ -214,47 +214,43 @@ class OrderPushCommand extends Command
             'Kampuchea Krom Blvd', 'Russian Blvd', 'Confederation de la Russie',
         ];
 
-        $cities = ['Phnom Penh', 'Siem Reap', 'Battambang', 'Sihanoukville', 'Kampot'];
+        $sangkats = ['Tonle Bassac', 'Boeung Keng Kang', 'Chamkar Mon', 'Daun Penh'];
 
-        // Use customer data if available, otherwise generate random
-        if ($customer) {
-            $recipientName = $customer->name;
-            $phone = $customer->phone ?? '0' . rand(10, 99) . '-' . rand(100, 999) . '-' . rand(100, 999);
-            $address = $customer->address;
+        // Generate coordinates within outlet's shipping zones (max ~7.8km from outlet)
+        // ~0.07 degrees = ~7.8km - ensures we stay within 10km far zone
+        $latOffset = (rand(-70, 70) / 1000); // -0.07 to +0.07
+        $lngOffset = (rand(-70, 70) / 1000);
 
-            // Parse customer address or use default
-            if ($address) {
-                return [
-                    'recipient_name' => $recipientName,
-                    'phone' => $phone,
-                    'street_1' => $address,
-                    'city' => 'Phnom Penh',
-                    'state' => 'Phnom Penh',
-                    'country' => 'Cambodia',
-                    'latitude' => 11.55 + (rand(-100, 100) / 1000),
-                    'longitude' => 104.92 + (rand(-100, 100) / 1000),
-                    'shipping_cost' => rand(1, 5) * 0.5,
-                ];
-            }
-        }
+        // Use outlet coordinates as base
+        $baseLat = $outlet->latitude ?? 11.5564;
+        $baseLng = $outlet->longitude ?? 104.9282;
+        $latitude = $baseLat + $latOffset;
+        $longitude = $baseLng + $lngOffset;
 
-        // Generate random address for guest or customer without address
+        // Generate address
         $streetNum = rand(1, 500);
         $street = $streets[array_rand($streets)];
-        $city = $cities[array_rand($cities)];
+        $sangkat = $sangkats[array_rand($sangkats)];
+
+        // Use customer data if available
+        $recipientName = $customer?->name ?? 'Guest Customer';
+        $phone = $customer?->phone ?? '0' . rand(10, 99) . '-' . rand(100, 999) . '-' . rand(100, 999);
+
+        // If customer has address, use it but still generate coordinates near outlet
+        $street1 = $customer?->address ?? "#{$streetNum}, {$street}";
 
         return [
-            'recipient_name' => $customer?->name ?? 'Guest Customer',
-            'phone' => $customer?->phone ?? '0' . rand(10, 99) . '-' . rand(100, 999) . '-' . rand(100, 999),
-            'street_1' => "#{$streetNum}, {$street}",
-            'street_2' => 'Sangkat ' . ['Tonle Bassac', 'Boeung Keng Kang', 'Chamkar Mon', 'Daun Penh'][rand(0, 3)],
-            'city' => $city,
-            'state' => $city === 'Phnom Penh' ? 'Phnom Penh' : $city . ' Province',
+            'recipient_name' => $recipientName,
+            'phone' => $phone,
+            'street_1' => $street1,
+            'street_2' => 'Sangkat ' . $sangkat,
+            'city' => 'Phnom Penh',
+            'state' => 'Phnom Penh',
             'postal_code' => '12' . rand(100, 999),
             'country' => 'Cambodia',
-            'latitude' => 11.55 + (rand(-100, 100) / 1000),
-            'longitude' => 104.92 + (rand(-100, 100) / 1000),
-            'shipping_cost' => rand(1, 5) * 0.5,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'shipping_cost' => rand(1, 5) * 0.5, // Default, will be overridden if zone found
         ];
     }
 

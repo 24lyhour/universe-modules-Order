@@ -7,6 +7,7 @@ import type { ShippingZoneCreateProps, ShippingZoneFormData } from '@order/types
 const props = defineProps<ShippingZoneCreateProps>();
 
 const isOpen = ref(true);
+const shippingZoneFormRef = ref<InstanceType<typeof ShippingZoneForm> | null>(null);
 
 const form = useForm<ShippingZoneFormData>({
     outlet_id: null,
@@ -37,10 +38,21 @@ const form = useForm<ShippingZoneFormData>({
     priority: 0,
 });
 
+// Check if selected outlet has location
+const selectedOutletHasLocation = computed(() => {
+    if (!form.outlet_id) return false;
+    const outlet = props.outlets.find(o => o.id === form.outlet_id);
+    return outlet?.latitude != null && outlet?.longitude != null;
+});
+
 // Check if form is invalid (required fields not filled or zone coordinates missing)
 const isFormInvalid = computed(() => {
     // Check required fields
     if (!form.outlet_id || !form.name.trim() || !form.zone_type || !form.vehicle_type) {
+        return true;
+    }
+    // Check if outlet has location set
+    if (!selectedOutletHasLocation.value) {
         return true;
     }
     // Check zone coordinates based on zone type
@@ -84,6 +96,7 @@ const handleSubmit = () => {
         @cancel="handleClose"
     >
         <ShippingZoneForm
+            ref="shippingZoneFormRef"
             v-model="form"
             :outlets="outlets"
             :zone-types="zoneTypes"

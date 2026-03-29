@@ -13,6 +13,7 @@ import {
     DollarSign,
     Truck,
     Settings,
+    AlertTriangle,
 } from 'lucide-vue-next';
 import type { ShippingZoneFormData, OutletInfo, ZoneType, VehicleType } from '@order/types';
 import TiptapEditor from '@/components/TiptapEditor.vue';
@@ -47,16 +48,21 @@ const selectedOutlet = computed(() => {
     return props.outlets.find(o => o.id === form.value.outlet_id) ?? null;
 });
 
-// When outlet changes, center map on outlet location
-watch(() => form.value.outlet_id, (newOutletId) => {
-    if (newOutletId) {
-        const outlet = props.outlets.find(o => o.id === newOutletId);
-        if (outlet?.latitude && outlet?.longitude && !form.value.latitude) {
-            updateField('latitude', outlet.latitude);
-            updateField('longitude', outlet.longitude);
-        }
-    }
+// Check if selected outlet has location set
+const outletHasLocation = computed(() => {
+    if (!selectedOutlet.value) return true; // No outlet selected yet, don't show warning
+    return selectedOutlet.value.latitude != null && selectedOutlet.value.longitude != null;
 });
+
+// Expose for parent component to check
+defineExpose({
+    outletHasLocation,
+});
+
+// Note: When outlet changes, the map will automatically center on the outlet location
+// via the referenceLatitude/referenceLongitude props passed to GeofenceMap.
+// We do NOT auto-set form.latitude/longitude here - the user must click on the map
+// to draw the zone manually.
 
 // Color presets for zones
 const colorPresets = [
@@ -117,6 +123,23 @@ const colorPresets = [
                             placeholder="e.g., Downtown Area"
                         />
                         <p v-if="errors?.name" class="text-sm text-destructive">{{ errors.name }}</p>
+                    </div>
+                </div>
+
+                <!-- Warning: Outlet has no location -->
+                <div
+                    v-if="selectedOutlet && !outletHasLocation"
+                    class="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg"
+                >
+                    <AlertTriangle class="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div class="space-y-1">
+                        <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                            Outlet has no location set
+                        </p>
+                        <p class="text-sm text-amber-700 dark:text-amber-300">
+                            The selected outlet "{{ selectedOutlet.name }}" does not have a physical address/location configured.
+                            Please set the outlet's location first before creating a shipping zone.
+                        </p>
                     </div>
                 </div>
 

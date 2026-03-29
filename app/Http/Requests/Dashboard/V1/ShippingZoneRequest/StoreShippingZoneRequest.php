@@ -4,6 +4,7 @@ namespace Modules\Order\Http\Requests\Dashboard\V1\ShippingZoneRequest;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Modules\Outlet\Models\Outlet;
 
 class StoreShippingZoneRequest extends FormRequest
 {
@@ -16,7 +17,16 @@ class StoreShippingZoneRequest extends FormRequest
     {
         return [
             // Zone Info
-            'outlet_id' => ['required', 'exists:outlets,id'],
+            'outlet_id' => [
+                'required',
+                'exists:outlets,id',
+                function ($attribute, $value, $fail) {
+                    $outlet = Outlet::find($value);
+                    if ($outlet && ($outlet->latitude === null || $outlet->longitude === null)) {
+                        $fail('The selected outlet does not have a location set. Please configure the outlet\'s address first.');
+                    }
+                },
+            ],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['required', 'string', 'max:7', 'regex:/^#[0-9A-Fa-f]{6}$/'],

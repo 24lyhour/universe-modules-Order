@@ -3,6 +3,7 @@
 namespace Modules\Order\Models;
 
 use App\Models\User;
+use App\Traits\BelongsToTenantModel;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Modules\Outlet\Models\Outlet;
 
 class ShippingZone extends Model
 {
-    use HasFactory, HasUuid, SoftDeletes;
+    use HasFactory, HasUuid, SoftDeletes, BelongsToTenantModel;
 
     /**
      * The table associated with the model.
@@ -67,6 +68,9 @@ class ShippingZone extends Model
         // Status
         'is_active',
         'priority',
+        // schedules
+        'time_start',
+        'time_end',
         // Audit
         'created_by',
         'updated_by',
