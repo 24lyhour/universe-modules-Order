@@ -40,6 +40,7 @@ class OrderResource extends JsonResource
                 'name' => $this->customer->name,
                 'email' => $this->customer->email,
                 'phone' => $this->customer->phone,
+                'address' => $this->customer->address,
             ]),
             'outlet' => $this->whenLoaded('outlet', fn () => [
                 'id' => $this->outlet->id,
@@ -47,6 +48,8 @@ class OrderResource extends JsonResource
                 'address' => $this->outlet->address,
                 'phone' => $this->outlet->phone,
                 'google_map_url' => $this->outlet->google_map_url,
+                'latitude' => $this->outlet->latitude ? (float) $this->outlet->latitude : null,
+                'longitude' => $this->outlet->longitude ? (float) $this->outlet->longitude : null,
             ]),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
                 'id' => $item->id,
@@ -80,8 +83,8 @@ class OrderResource extends JsonResource
                 'state' => $this->shipping->state,
                 'postal_code' => $this->shipping->postal_code,
                 'country' => $this->shipping->country,
-                'latitude' => $this->shipping->latitude,
-                'longitude' => $this->shipping->longitude,
+                'latitude' => $this->shipping->latitude ? (float) $this->shipping->latitude : null,
+                'longitude' => $this->shipping->longitude ? (float) $this->shipping->longitude : null,
                 'estimated_delivery_at' => $this->shipping->estimated_delivery_at?->toISOString(),
                 'shipped_at' => $this->shipping->shipped_at?->toISOString(),
                 'delivered_at' => $this->shipping->delivered_at?->toISOString(),

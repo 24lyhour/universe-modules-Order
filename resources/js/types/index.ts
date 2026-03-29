@@ -136,14 +136,17 @@ export interface CustomerInfo {
     name: string;
     email: string;
     phone?: string;
+    address?: string | null;
 }
 
 export interface OutletInfo {
     id: number;
     name: string;
-    address?: string | null;
-    phone?: string | null;
-    google_map_url?: string | null;
+    address: string | null;
+    phone: string | null;
+    google_map_url: string | null;
+    latitude: number | null;
+    longitude: number | null;
 }
 
 export interface ProductInfo {
@@ -281,4 +284,145 @@ export interface CartEditProps {
     outlets: OutletInfo[];
     customers: CustomerInfo[];
     statuses: SelectOption[];
+}
+
+// ==================== SHIPPING ZONE TYPES ====================
+
+export type ZoneType = 'circle' | 'polygon';
+export type VehicleType = 'bike' | 'motorcycle' | 'car' | 'van' | 'truck';
+
+export interface ShippingZone {
+    id: number;
+    uuid: string;
+    outlet_id: number;
+    name: string;
+    description: string | null;
+    color: string;
+    zone_type: ZoneType;
+    latitude: number;
+    longitude: number;
+    radius: number | null;
+    polygon_coordinates: [number, number][] | null;
+    // Pricing
+    delivery_fee: number;
+    min_order_amount: number;
+    free_delivery_threshold: number | null;
+    peak_hour_surcharge: number;
+    price_per_km: number | null;
+    // Capacity
+    max_orders_per_hour: number | null;
+    max_weight_kg: number | null;
+    max_items: number | null;
+    // Vehicle
+    vehicle_type: VehicleType;
+    driver_requirements: string | null;
+    requires_special_handling: boolean;
+    // Time
+    estimated_delivery_minutes: number | null;
+    operating_hours: Record<string, { open: string; close: string }> | null;
+    peak_hours: { start: string; end: string } | null;
+    blocked_dates: string[] | null;
+    // Status
+    is_active: boolean;
+    priority: number;
+    // Relations
+    outlet?: OutletInfo | null;
+    // Timestamps
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ShippingZoneFormData {
+    outlet_id: number | null;
+    name: string;
+    description: string;
+    color: string;
+    zone_type: ZoneType;
+    latitude: number | null;
+    longitude: number | null;
+    radius: number;
+    polygon_coordinates: [number, number][] | null;
+    // Pricing
+    delivery_fee: number;
+    min_order_amount: number;
+    free_delivery_threshold: number | null;
+    peak_hour_surcharge: number;
+    price_per_km: number | null;
+    // Capacity
+    max_orders_per_hour: number | null;
+    max_weight_kg: number | null;
+    max_items: number | null;
+    // Vehicle
+    vehicle_type: VehicleType;
+    driver_requirements: string;
+    requires_special_handling: boolean;
+    // Time
+    estimated_delivery_minutes: number | null;
+    operating_hours: Record<string, { open: string; close: string }> | null;
+    peak_hours: { start: string; end: string } | null;
+    blocked_dates: string[] | null;
+    // Status
+    is_active: boolean;
+    priority: number;
+}
+
+export interface ShippingZoneStats {
+    total: number;
+    active: number;
+    inactive: number;
+    by_type: {
+        circle: number;
+        polygon: number;
+    };
+    by_vehicle: {
+        bike: number;
+        motorcycle: number;
+        car: number;
+        van: number;
+        truck: number;
+    };
+}
+
+export interface ShippingZoneIndexProps {
+    shippingZones: PaginatedResponse<ShippingZone>;
+    filters: {
+        search?: string;
+        outlet_id?: number;
+        zone_type?: string;
+        vehicle_type?: string;
+        is_active?: string;
+    };
+    stats: ShippingZoneStats;
+    outlets: OutletInfo[];
+    zoneTypes: Record<string, string>;
+    vehicleTypes: Record<string, string>;
+}
+
+export interface ShippingZoneCreateProps {
+    outlets: Array<OutletInfo & { latitude: number | null; longitude: number | null }>;
+    zoneTypes: Record<string, string>;
+    vehicleTypes: Record<string, string>;
+}
+
+export interface ShippingZoneEditProps {
+    shippingZone: ShippingZone;
+    outlets: Array<OutletInfo & { latitude: number | null; longitude: number | null }>;
+    zoneTypes: Record<string, string>;
+    vehicleTypes: Record<string, string>;
+}
+
+export interface ShippingZoneShowProps {
+    shippingZone: ShippingZone;
+}
+
+export interface DeliveryCheckResponse {
+    available: boolean;
+    message?: string;
+    zone_name?: string;
+    delivery_fee?: number;
+    estimated_minutes?: number;
+    min_order_amount?: number;
+    free_delivery_threshold?: number;
+    vehicle_type?: VehicleType;
+    distance_km?: number;
 }

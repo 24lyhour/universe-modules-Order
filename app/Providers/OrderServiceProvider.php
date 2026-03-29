@@ -13,6 +13,7 @@ use Modules\Order\Console\Commands\OrderListCommand;
 use Modules\Order\Console\Commands\OrderPushCommand;
 use Modules\Order\Console\Commands\OrderSimulateCommand;
 use Modules\Order\Console\Commands\OrderStatsCommand;
+use Modules\Order\Console\Commands\OrderUpdateShippingCoordsCommand;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -104,6 +105,17 @@ class OrderServiceProvider extends ServiceProvider
                 'order.outlet-reviews.*',
                 'Store'
             );
+              // Shipping Zones submenu
+            MenuService::addSubmenuItem(
+                'primary',
+                'order',
+                __('Shipping Zones'),
+                route('order.shipping-zones.index'),
+                5,
+                'shipping_zones.view_any',
+                'order.shipping-zones.*',
+                'MapPin'
+            );
         });
     }
 
@@ -127,6 +139,7 @@ class OrderServiceProvider extends ServiceProvider
             OrderPushCommand::class,
             OrderSimulateCommand::class,
             OrderStatsCommand::class,
+            OrderUpdateShippingCoordsCommand::class,
             CartCreateCommand::class,
             CartListCommand::class,
             CartStatsCommand::class,

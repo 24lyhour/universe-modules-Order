@@ -6,22 +6,32 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ShippingRouteMap } from '@/components/shared';
+import { DeliveryRouteMap } from '@/components/shared';
 import { toast } from 'vue-sonner';
-import type { OrderShippingInfo, OutletInfo } from '@order/types';
+import type { OrderShippingInfo, OutletInfo, CustomerInfo } from '@order/types';
 
 const { __ } = useTranslation();
 
 const props = defineProps<{
     shipping: OrderShippingInfo | null | undefined;
     outlet?: OutletInfo | null;
+    customer?: CustomerInfo | null;
+    status?: string;
 }>();
+
+// Statuses where shipping details should be shown
+const shippingDetailStatuses = ['delivering', 'delivered', 'completed'];
+const showShippingDetails = computed(() =>
+    props.status && shippingDetailStatuses.includes(props.status)
+);
 
 // Check if we have outlet address
 const hasOutletAddress = computed(() => !!props.outlet?.address);
 
-// Check if we have shipping address
+// Check if we have shipping address or customer address as fallback
 const hasShippingAddress = computed(() => !!props.shipping?.street_1);
+const hasCustomerAddress = computed(() => !!props.customer?.address);
+const hasToAddress = computed(() => hasShippingAddress.value || hasCustomerAddress.value);
 
 const copiedTracking = ref(false);
 const copiedPhone = ref(false);
@@ -53,11 +63,13 @@ const formatCoordinate = (coord: number | string | null | undefined): string => 
     return isNaN(num) ? '0.000000' : num.toFixed(6);
 };
 
-// Open Google Maps with coordinates
-const openMaps = (lat: number | string, lng: number | string) => {
-    const latNum = typeof lat === 'string' ? parseFloat(lat) : lat;
-    const lngNum = typeof lng === 'string' ? parseFloat(lng) : lng;
-    window.open(`https://www.google.com/maps?q=${latNum},${lngNum}`, '_blank');
+// Open Google Maps with directions from outlet to customer
+const openMapsDirections = (fromLat: number | string, fromLng: number | string, toLat: number | string, toLng: number | string) => {
+    const fromLatNum = typeof fromLat === 'string' ? parseFloat(fromLat) : fromLat;
+    const fromLngNum = typeof fromLng === 'string' ? parseFloat(fromLng) : fromLng;
+    const toLatNum   = typeof toLat === 'string' ? parseFloat(toLat) : toLat;
+    const toLngNum   = typeof toLng === 'string' ? parseFloat(toLng) : toLng;
+    window.open(`https://www.google.com/maps/dir/${fromLatNum},${fromLngNum}/${toLatNum},${toLngNum}`, '_blank');
 };
 
 // Copy to clipboard
@@ -77,19 +89,18 @@ const copyToClipboard = async (text: string, type: 'tracking' | 'phone') => {
     }
 };
 
-// Build full address string
-const getFullAddress = (shipping: OrderShippingInfo) => {
-    const parts = [
-        shipping.street_1,
-        shipping.street_2,
-        [shipping.city, shipping.state, shipping.postal_code].filter(Boolean).join(', '),
-        shipping.country,
-    ].filter(Boolean);
-    return parts.join('\n');
-};
+// Check if outlet has coordinates
+const hasOutletCoords = computed(() => !!props.outlet?.latitude && !!props.outlet?.longitude);
+
+// Check if shipping has coordinates
+const hasShippingCoords = computed(() => !!props.shipping?.latitude && !!props.shipping?.longitude);
+
+// Check if both have coordinates (for route line)
+const hasBothCoords = computed(() => hasOutletCoords.value && hasShippingCoords.value);
 </script>
 
 <template>
+                <!-- Delivery Route Map (FROM outlet → TO customer) -->
     <Card>
         <CardHeader class="pb-3">
             <CardTitle class="text-sm font-medium flex items-center gap-2">
@@ -98,112 +109,48 @@ const getFullAddress = (shipping: OrderShippingInfo) => {
             </CardTitle>
         </CardHeader>
         <CardContent v-if="shipping || outlet" class="space-y-4">
-            <!-- FROM: Outlet Address -->
-            <div v-if="outlet" class="space-y-2">
+
+            <div v-if="(outlet?.latitude && outlet?.longitude) || (shipping?.latitude && shipping?.longitude)" class="space-y-2">
                 <div class="flex items-center gap-2">
-                    <Badge variant="outline" class="bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 border-orange-300 dark:border-orange-700 text-xs">
-                        {{ __('FROM') }}
-                    </Badge>
-                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ __('Outlet') }}</p>
+                    <Route class="h-4 w-4 text-muted-foreground" />
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ __('Delivery Route') }}</p>
                 </div>
-                <div class="p-3 rounded-lg border bg-orange-50/50 dark:bg-orange-950/20 border-orange-200/50 dark:border-orange-800/30">
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center shrink-0 mt-0.5">
-                            <Store class="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div class="flex-1 text-sm space-y-1">
-                            <p class="font-semibold text-orange-900 dark:text-orange-100">{{ outlet.name }}</p>
-                            <p v-if="outlet.address" class="text-orange-700/80 dark:text-orange-300/80">{{ outlet.address }}</p>
-                            <div v-if="outlet.phone" class="flex items-center gap-2 mt-1">
-                                <Phone class="h-3 w-3 text-orange-600/70 dark:text-orange-400/70" />
-                                <span class="text-xs font-mono text-orange-700/70 dark:text-orange-300/70">{{ outlet.phone }}</span>
-                            </div>
-                            <!-- Open in Maps button for outlet -->
-                            <div v-if="outlet.google_map_url" class="mt-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    class="h-7 text-xs gap-1.5 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50"
-                                    as="a"
-                                    :href="outlet.google_map_url"
-                                    target="_blank"
-                                >
-                                    <Navigation class="h-3 w-3" />
-                                    {{ __('View on Maps') }}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Arrow indicator between FROM and TO -->
-            <div v-if="hasOutletAddress && hasShippingAddress" class="flex justify-center py-1">
-                <div class="flex flex-col items-center gap-0.5 text-muted-foreground">
-                    <div class="w-0.5 h-4 bg-gradient-to-b from-orange-400 to-blue-400 rounded-full" />
-                    <Truck class="h-4 w-4 text-primary animate-pulse" />
-                    <div class="w-0.5 h-4 bg-gradient-to-b from-blue-400 to-blue-500 rounded-full" />
-                </div>
-            </div>
-
-            <!-- TO: Customer Delivery Address -->
-            <div v-if="shipping?.street_1" class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <Badge variant="outline" class="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-xs">
-                        {{ __('TO') }}
-                    </Badge>
-                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ __('Customer') }}</p>
-                </div>
-                <div class="p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/30">
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0 mt-0.5">
-                            <MapPin class="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div class="flex-1 text-sm space-y-0.5">
-                            <p class="font-medium text-blue-900 dark:text-blue-100">{{ shipping.street_1 }}</p>
-                            <p v-if="shipping.street_2" class="text-blue-700/80 dark:text-blue-300/80">{{ shipping.street_2 }}</p>
-                            <p class="text-blue-700/70 dark:text-blue-300/70">
-                                {{ [shipping.city, shipping.state, shipping.postal_code].filter(Boolean).join(', ') }}
-                            </p>
-                            <p v-if="shipping.country" class="text-blue-700/70 dark:text-blue-300/70 font-medium">{{ shipping.country }}</p>
-                        </div>
-                    </div>
-
-                    <!-- GPS & Map Link -->
-                    <div v-if="shipping.latitude && shipping.longitude" class="mt-3 pt-3 border-t border-blue-200/50 dark:border-blue-800/30">
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2">
-                                <Navigation class="h-4 w-4 text-green-600 dark:text-green-400" />
-                                <span class="font-mono text-xs text-muted-foreground">
-                                    {{ formatCoordinate(shipping.latitude) }}, {{ formatCoordinate(shipping.longitude) }}
-                                </span>
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                class="h-7 text-xs gap-1.5"
-                                @click="openMaps(shipping.latitude!, shipping.longitude!)"
-                            >
-                                <Navigation class="h-3 w-3" />
-                                {{ __('Open in Maps') }}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Embedded Map Display -->
-            <div v-if="shipping?.latitude && shipping?.longitude" class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <MapPin class="h-4 w-4 text-muted-foreground" />
-                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ __('Delivery Location') }}</p>
-                </div>
-                <ShippingRouteMap
-                    height="180px"
-                    :to-latitude="Number(shipping.latitude)"
-                    :to-longitude="Number(shipping.longitude)"
-                    :to-label="shipping.recipient_name || __('Customer')"
+                <DeliveryRouteMap
+                    height="500px"
+                    :from-latitude="outlet?.latitude ? Number(outlet.latitude) : null"
+                    :from-longitude="outlet?.longitude ? Number(outlet.longitude) : null"
+                    :from-label="outlet?.name || __('Outlet')"
+                    :to-latitude="shipping?.latitude ? Number(shipping.latitude) : null"
+                    :to-longitude="shipping?.longitude ? Number(shipping.longitude) : null"
+                    :to-label="shipping?.recipient_name || __('Customer')"
                 />
+                <!-- Legend -->
+                <div class="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                    <span v-if="hasOutletCoords" class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+                        {{ __('Outlet') }}
+                    </span>
+                    <span v-if="hasBothCoords" class="flex items-center gap-1.5">
+                        <span class="w-2 h-0.5 bg-indigo-500 rounded"></span>
+                        {{ __('Route') }}
+                    </span>
+                    <span v-if="hasShippingCoords" class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                        {{ __('Customer') }}
+                    </span>
+                </div>
+                <!-- View Map Button -->
+                <div v-if="hasBothCoords" class="flex justify-center pt-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        class="gap-2"
+                        @click="openMapsDirections(outlet!.latitude!, outlet!.longitude!, shipping!.latitude!, shipping!.longitude!)"
+                    >
+                        <Navigation class="h-4 w-4" />
+                        {{ __('View Map') }}
+                    </Button>
+                </div>
             </div>
 
             <!-- Recipient Info -->
@@ -257,8 +204,8 @@ const getFullAddress = (shipping: OrderShippingInfo) => {
                 </div>
             </div>
 
-            <!-- Carrier & Tracking -->
-            <div v-if="shipping?.carrier || shipping?.tracking_number || shipping?.method" class="space-y-2">
+            <!-- Carrier & Tracking (only show when delivering or later) -->
+            <div v-if="showShippingDetails && (shipping?.carrier || shipping?.tracking_number || shipping?.method)" class="space-y-2">
                 <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ __('Carrier & Tracking') }}</p>
                 <div class="p-3 rounded-lg bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-800/30">
                     <div class="flex items-start gap-3">
@@ -297,8 +244,8 @@ const getFullAddress = (shipping: OrderShippingInfo) => {
                 </div>
             </div>
 
-            <!-- Shipping Cost & Estimated Delivery -->
-            <div v-if="shipping?.shipping_cost || shipping?.estimated_delivery_at" class="grid grid-cols-2 gap-3">
+            <!-- Shipping Cost & Estimated Delivery (only show when delivering or later) -->
+            <div v-if="showShippingDetails && (shipping?.shipping_cost || shipping?.estimated_delivery_at)" class="grid grid-cols-2 gap-3">
                 <div v-if="formatCurrency(shipping?.shipping_cost)" class="p-3 rounded-lg bg-muted/50 text-center">
                     <DollarSign class="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                     <p class="text-xs text-muted-foreground">{{ __('Shipping Cost') }}</p>

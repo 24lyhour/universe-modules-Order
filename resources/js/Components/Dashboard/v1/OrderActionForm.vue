@@ -236,21 +236,6 @@ const handleClose = () => {
     isOpen.value = false;
 };
 
-const getStatusVariant = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-        pending: 'outline',
-        confirmed: 'secondary',
-        preparing: 'default',
-        ready: 'default',
-        delivering: 'default',
-        delivered: 'secondary',
-        completed: 'secondary',
-        cancelled: 'destructive',
-        refunded: 'outline',
-    };
-    return variants[status] || 'outline';
-};
-
 const getPaymentStatusVariant = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
         pending: 'outline',
@@ -289,7 +274,7 @@ const formatDate = (date: string | null | undefined) => {
         v-model:open="isOpen"
         :title="__('Order Management')"
         :description="__('View and manage order details')"
-        size="xl"
+        size="2xl"
         :loading="isUpdating"
         @cancel="handleClose"
     >
@@ -482,7 +467,12 @@ const formatDate = (date: string | null | undefined) => {
             </div>
 
             <!-- Shipping Route - Full Width (FROM outlet TO customer) -->
-            <OrderShippingWidget :shipping="order.shipping" :outlet="order.outlet" />
+            <OrderShippingWidget
+                :shipping="order.shipping"
+                :outlet="order.outlet"
+                :customer="order.customer"
+                :status="order.status"
+            />
         </div>
 
         <!-- No Order State -->

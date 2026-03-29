@@ -11,6 +11,8 @@ use Modules\Order\Enums\PaymentMethodEnum;
 use Modules\Order\Enums\PaymentStatusEnum;
 use Modules\Order\Models\Cart;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\OrderShipping;
+use Modules\Order\Models\ShippingZone;
 use Modules\Outlet\Models\Outlet;
 use Modules\Product\Models\Product;
 
@@ -164,9 +166,92 @@ class OrderPushCommand extends Command
             ]);
         }
 
+        // Create shipping info with customer address and zone detection
+        $shippingData = $this->generateShippingData($customer, $outlet);
+
+        // Find shipping zone based on coordinates
+        $zone = null;
+        $distanceKm = null;
+        if (isset($shippingData['latitude']) && isset($shippingData['longitude'])) {
+            $zone = ShippingZone::getBestZoneForPoint(
+                (float) $shippingData['latitude'],
+                (float) $shippingData['longitude'],
+                $outlet->id
+            );
+
+            if ($zone) {
+                $distanceKm = $zone->getDistanceToPoint(
+                    (float) $shippingData['latitude'],
+                    (float) $shippingData['longitude']
+                );
+                // Use zone's calculated delivery fee
+                $shippingData['shipping_cost'] = $zone->calculateDeliveryFee(
+                    (float) $shippingData['latitude'],
+                    (float) $shippingData['longitude'],
+                    $order->total_amount
+                );
+            }
+        }
+
+        OrderShipping::create([
+            'order_id' => $order->id,
+            'shipping_zone_id' => $zone?->id,
+            'distance_km' => $distanceKm ? round($distanceKm, 2) : null,
+            ...$shippingData,
+        ]);
+
         $cart->update(['status' => CartStatusEnum::Converted->value, 'is_active' => false]);
 
-        return $order->fresh(['customer', 'outlet', 'items']);
+        return $order->fresh(['customer', 'outlet', 'items', 'shipping.shippingZone']);
+    }
+
+    protected function generateShippingData(?Customer $customer, Outlet $outlet): array
+    {
+        // Sample street names for random address generation
+        $streets = [
+            'Monivong Blvd', 'Norodom Blvd', 'Sihanouk Blvd', 'Mao Tse Tung Blvd',
+            'Street 51', 'Street 63', 'Street 178', 'Street 240', 'Street 310',
+            'Kampuchea Krom Blvd', 'Russian Blvd', 'Confederation de la Russie',
+        ];
+
+        $sangkats = ['Tonle Bassac', 'Boeung Keng Kang', 'Chamkar Mon', 'Daun Penh'];
+
+        // Generate coordinates within outlet's shipping zones (max ~7.8km from outlet)
+        // ~0.07 degrees = ~7.8km - ensures we stay within 10km far zone
+        $latOffset = (rand(-70, 70) / 1000); // -0.07 to +0.07
+        $lngOffset = (rand(-70, 70) / 1000);
+
+        // Use outlet coordinates as base
+        $baseLat = $outlet->latitude ?? 11.5564;
+        $baseLng = $outlet->longitude ?? 104.9282;
+        $latitude = $baseLat + $latOffset;
+        $longitude = $baseLng + $lngOffset;
+
+        // Generate address
+        $streetNum = rand(1, 500);
+        $street = $streets[array_rand($streets)];
+        $sangkat = $sangkats[array_rand($sangkats)];
+
+        // Use customer data if available
+        $recipientName = $customer?->name ?? 'Guest Customer';
+        $phone = $customer?->phone ?? '0' . rand(10, 99) . '-' . rand(100, 999) . '-' . rand(100, 999);
+
+        // If customer has address, use it but still generate coordinates near outlet
+        $street1 = $customer?->address ?? "#{$streetNum}, {$street}";
+
+        return [
+            'recipient_name' => $recipientName,
+            'phone' => $phone,
+            'street_1' => $street1,
+            'street_2' => 'Sangkat ' . $sangkat,
+            'city' => 'Phnom Penh',
+            'state' => 'Phnom Penh',
+            'postal_code' => '12' . rand(100, 999),
+            'country' => 'Cambodia',
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'shipping_cost' => rand(1, 5) * 0.5, // Default, will be overridden if zone found
+        ];
     }
 
     protected function displayOrder(Order $order, int $num): void
@@ -183,8 +268,32 @@ class OrderPushCommand extends Command
         $custId = $order->customer_id ?? '-';
         $this->line("│  👤 Customer: {$custName} (ID: {$custId})");
 
+        // Shipping Address
+        if ($order->shipping) {
+            $this->line("│  📍 Address: {$order->shipping->recipient_name}");
+            $this->line("│     {$order->shipping->street_1}");
+            if ($order->shipping->street_2) {
+                $this->line("│     {$order->shipping->street_2}");
+            }
+            $this->line("│     {$order->shipping->city}, {$order->shipping->country}");
+            $this->line("│     📞 {$order->shipping->phone}");
+            if ($order->shipping->latitude && $order->shipping->longitude) {
+                $this->line("│     🗺️  GPS: ({$order->shipping->latitude}, {$order->shipping->longitude})");
+            }
+            if ($order->shipping->shippingZone) {
+                $zone = $order->shipping->shippingZone;
+                $this->line("│     📦 Zone: <fg=cyan>{$zone->name}</> (Fee: \${$order->shipping->shipping_cost})");
+                if ($order->shipping->distance_km) {
+                    $this->line("│     📏 Distance: {$order->shipping->distance_km} km");
+                }
+            }
+        }
+
         // Outlet
         $this->line("│  🏪 Outlet: {$order->outlet?->name} (ID: {$order->outlet_id})");
+        if ($order->outlet?->latitude && $order->outlet?->longitude) {
+            $this->line("│     🗺️  GPS: ({$order->outlet->latitude}, {$order->outlet->longitude})");
+        }
         $this->line("├─────────────────────────────────────────────────────┤");
 
         // Products
@@ -197,6 +306,9 @@ class OrderPushCommand extends Command
 
         $this->line("├─────────────────────────────────────────────────────┤");
         $this->line("│  💰 Subtotal: \$" . number_format($order->subtotal, 2));
+        if ($order->shipping?->shipping_cost) {
+            $this->line("│     Shipping: \$" . number_format($order->shipping->shipping_cost, 2));
+        }
         $this->line("│     Tax 10%: \$" . number_format($order->tax_amount, 2));
         $this->line("│     <fg=green>TOTAL: \$" . number_format($order->total_amount, 2) . "</>");
         $this->line("├─────────────────────────────────────────────────────┤");

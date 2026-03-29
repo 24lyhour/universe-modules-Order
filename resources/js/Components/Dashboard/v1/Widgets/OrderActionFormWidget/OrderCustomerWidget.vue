@@ -19,7 +19,7 @@ interface Customer {
 interface Outlet {
     id: number;
     name: string;
-    address?: string;
+    address?: string | null;
 }
 
 const props = defineProps<{

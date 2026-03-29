@@ -37,7 +37,7 @@ class ProductReviewResource extends JsonResource
                 'id' => $this->product->id,
                 'name' => $this->product->name,
                 'sku' => $this->product->sku,
-                'image' => $this->product->image ?? null,
+                'image' => $this->product->images[0] ?? null,
             ]),
             'order' => $this->whenLoaded('order', fn () => [
                 'id' => $this->order->id,

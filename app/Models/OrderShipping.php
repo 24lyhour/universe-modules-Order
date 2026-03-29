@@ -20,6 +20,7 @@ class OrderShipping extends Model
      */
     protected $fillable = [
         'order_id',
+        'shipping_zone_id',
         'carrier',
         'method',
         'shipping_cost',
@@ -34,6 +35,7 @@ class OrderShipping extends Model
         'country',
         'latitude',
         'longitude',
+        'distance_km',
         'weight',
         'notes',
         'estimated_delivery_at',
@@ -49,6 +51,7 @@ class OrderShipping extends Model
         'weight'                => 'decimal:2',
         'latitude'              => 'decimal:8',
         'longitude'             => 'decimal:8',
+        'distance_km'           => 'decimal:2',
         'estimated_delivery_at' => 'datetime',
         'shipped_at'            => 'datetime',
         'delivered_at'          => 'datetime',
@@ -60,6 +63,14 @@ class OrderShipping extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Get the shipping zone for this shipping.
+     */
+    public function shippingZone(): BelongsTo
+    {
+        return $this->belongsTo(ShippingZone::class);
     }
 
     /**

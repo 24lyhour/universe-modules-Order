@@ -11,6 +11,7 @@ use Modules\Order\Enums\PaymentStatusEnum;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\OrderShipping;
+use Modules\Order\Models\ShippingZone;
 use Modules\Outlet\Models\Outlet;
 use Modules\Product\Models\Product;
 
@@ -156,11 +157,9 @@ class OrderSeeder extends Seeder
                 'total_amount' => $subtotal + $taxAmount - ($order->discount_amount ?? 0),
             ]);
 
-            // Create shipping record for orders that need it
-            if ($this->shouldHaveShipping($orderStatus)) {
-                $this->createShipping($order, $customer, $timestamps);
-                $shippingCount++;
-            }
+            // Create shipping record for ALL orders (so map route always shows)
+            $this->createShipping($order, $customer, $timestamps);
+            $shippingCount++;
         }
 
         $this->command->info('OrderSeeder: Created ' . Order::count() . ' orders with items and ' . $shippingCount . ' shipping records.');
@@ -185,22 +184,43 @@ class OrderSeeder extends Seeder
      */
     private function createShipping(Order $order, Customer $customer, array $timestamps): void
     {
-        $location = $this->locations[array_rand($this->locations)];
+        $outlet = $order->outlet;
         $carrier = array_rand($this->carriers);
         $methods = $this->carriers[$carrier];
         $method = $methods[array_rand($methods)];
 
-        // Add some randomness to GPS coordinates (within ~2km)
-        $latOffset = (rand(-200, 200) / 10000);
-        $lngOffset = (rand(-200, 200) / 10000);
+        // Generate coordinates within outlet's shipping zones
+        // ~0.09 degrees = ~10km (max zone radius)
+        $maxOffset = 0.07; // ~7.8km - ensures we stay within 10km far zone
+        $latOffset = (rand(-70, 70) / 1000); // -0.07 to +0.07
+        $lngOffset = (rand(-70, 70) / 1000);
+
+        // Use outlet coordinates as base (not predefined locations)
+        $latitude = ($outlet->latitude ?? 11.5564) + $latOffset;
+        $longitude = ($outlet->longitude ?? 104.9282) + $lngOffset;
+
+        // Find shipping zone for these coordinates
+        $zone = ShippingZone::getBestZoneForPoint($latitude, $longitude, $outlet->id);
+        $distanceKm = null;
+        $shippingCost = fake()->randomFloat(2, 2, 15);
+
+        if ($zone) {
+            $distanceKm = round($zone->getDistanceToPoint($latitude, $longitude), 2);
+            $shippingCost = $zone->calculateDeliveryFee($latitude, $longitude, $order->total_amount);
+        }
+
+        // Get city/state from nearest predefined location
+        $location = $this->getNearestLocation($latitude, $longitude);
 
         $baseDate = \Carbon\Carbon::parse($order->created_at);
 
         OrderShipping::create([
             'order_id' => $order->id,
+            'shipping_zone_id' => $zone?->id,
+            'distance_km' => $distanceKm,
             'carrier' => $carrier,
             'method' => $method,
-            'shipping_cost' => fake()->randomFloat(2, 2, 15),
+            'shipping_cost' => $shippingCost,
             'tracking_number' => $this->generateTrackingNumber($carrier),
             'recipient_name' => $customer->name,
             'phone' => $customer->phone ?? fake()->numerify('+855 ## ### ####'),
@@ -210,14 +230,37 @@ class OrderSeeder extends Seeder
             'state' => $location['state'],
             'postal_code' => fake()->numerify('#####'),
             'country' => 'Cambodia',
-            'latitude' => $location['lat'] + $latOffset,
-            'longitude' => $location['lng'] + $lngOffset,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
             'weight' => fake()->randomFloat(2, 0.5, 10),
             'notes' => fake()->optional(0.2)->sentence(),
             'estimated_delivery_at' => $baseDate->copy()->addDays(rand(1, 5)),
             'shipped_at' => $timestamps['shipped_at'],
             'delivered_at' => $timestamps['delivered_at'],
         ]);
+    }
+
+    /**
+     * Get nearest predefined location for city/state info.
+     */
+    private function getNearestLocation(float $lat, float $lng): array
+    {
+        $nearest = $this->locations[0];
+        $minDistance = PHP_FLOAT_MAX;
+
+        foreach ($this->locations as $location) {
+            $distance = sqrt(
+                pow($location['lat'] - $lat, 2) +
+                pow($location['lng'] - $lng, 2)
+            );
+
+            if ($distance < $minDistance) {
+                $minDistance = $distance;
+                $nearest = $location;
+            }
+        }
+
+        return $nearest;
     }
 
     /**

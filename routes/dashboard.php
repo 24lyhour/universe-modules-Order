@@ -5,6 +5,7 @@ use Modules\Order\Http\Controllers\Dashboard\V1\CartController;
 use Modules\Order\Http\Controllers\Dashboard\V1\OrderController;
 use Modules\Order\Http\Controllers\Dashboard\V1\OutletReviewController;
 use Modules\Order\Http\Controllers\Dashboard\V1\ProductReviewController;
+use Modules\Order\Http\Controllers\Dashboard\V1\ShippingZoneController;
 
 Route::middleware(['auth', 'verified', 'auto.permission'])
     ->prefix('dashboard')
@@ -68,4 +69,17 @@ Route::middleware(['auth', 'verified', 'auto.permission'])
             ->name('order.outlet-reviews.reply');
         Route::put('outlet-reviews/{outletReview}/toggle-active', [OutletReviewController::class, 'toggleActive'])
             ->name('order.outlet-reviews.toggle-active');
+
+        // ==================== SHIPPING ZONE ROUTES ====================
+
+        // Shipping Zones CRUD
+        Route::resource('shipping-zones', ShippingZoneController::class)
+            ->names('order.shipping-zones')
+            ->parameters(['shipping-zones' => 'shippingZone']);
+
+        // Shipping Zone Actions
+        Route::put('shipping-zones/{shippingZone}/toggle-active', [ShippingZoneController::class, 'toggleActive'])
+            ->name('order.shipping-zones.toggle-active');
+        Route::post('shipping-zones/check-delivery', [ShippingZoneController::class, 'checkDelivery'])
+            ->name('order.shipping-zones.check-delivery');
     });

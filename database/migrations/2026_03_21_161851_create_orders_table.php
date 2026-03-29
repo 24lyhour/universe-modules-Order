@@ -17,9 +17,10 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->string('order_number')->unique();
 
-            // Relationships
-            $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('outlet_id')->nullable()->constrained()->nullOnDelete();
+            // Cross-database references (customers & outlets live in universe DB)
+            $table->unsignedBigInteger('customer_id')->nullable()->index();
+            $table->unsignedBigInteger('outlet_id')->nullable()->index();
+            // Same-database reference
             $table->foreignId('cart_id')->nullable()->constrained('order_carts')->nullOnDelete();
 
             // Pricing
@@ -70,7 +71,8 @@ return new class extends Migration
 
             // Relationships
             $table->foreignId('order_id')->constrained('order_orders')->cascadeOnDelete();
-            $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
+            // Cross-database reference (products live in universe DB)
+            $table->unsignedBigInteger('product_id')->nullable()->index();
 
             // Product snapshot (in case product is deleted)
             $table->string('product_name');
