@@ -22,15 +22,15 @@ const { __ } = useTranslation();
 
 interface ProductReviewItem {
     id: number;
-    uuid: string;
-    customer_id: number;
-    product_id: number;
+    uuid?: string;
+    customer_id?: number;
+    product_id?: number;
     rating: number;
     comment: string | null;
     reply: string | null;
     is_active: boolean;
-    is_verified: boolean;
-    helpful_count: number;
+    is_verified?: boolean;
+    helpful_count?: number;
     created_at: string;
     customer?: { id: number; name: string; avatar?: string; total_spend?: number; total_reviews?: number };
     product?: { id: number; name: string; sku?: string };

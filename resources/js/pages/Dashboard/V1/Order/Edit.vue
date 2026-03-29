@@ -39,7 +39,7 @@ const isFormInvalid = computed(() => {
 });
 
 const handleSubmit = () => {
-    form.put(`/dashboard/orders/${props.order.id}`, {
+    form.put(`/dashboard/orders/${props.order.uuid}`, {
         onSuccess: () => {
             close();
             redirect();
