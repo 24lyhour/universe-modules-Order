@@ -156,16 +156,35 @@ class CartService
      */
     public function getOrCreateForCustomer(int $customerId, ?int $outletId = null): Cart
     {
-        $cart = Cart::where('customer_id', $customerId)
+        $query = Cart::where('customer_id', $customerId)
             ->where('status', CartStatusEnum::Active)
-            ->where('is_active', true)
-            ->first();
+            ->where('is_active', true);
+
+        // If outlet specified, find cart for that outlet first
+        if ($outletId) {
+            $cart = (clone $query)->where('outlet_id', $outletId)->latest()->first();
+
+            if ($cart) {
+                return $cart;
+            }
+        }
+
+        // Find any active cart
+        $cart = $query->latest()->first();
 
         if (!$cart) {
             $cart = $this->create([
                 'customer_id' => $customerId,
                 'outlet_id' => $outletId,
             ]);
+        } elseif ($outletId && $cart->outlet_id !== $outletId) {
+            // Different outlet → create new cart for this outlet
+            $cart = $this->create([
+                'customer_id' => $customerId,
+                'outlet_id' => $outletId,
+            ]);
+        } elseif ($outletId && !$cart->outlet_id) {
+            $cart->update(['outlet_id' => $outletId]);
         }
 
         return $cart;

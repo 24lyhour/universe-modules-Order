@@ -13,6 +13,7 @@ use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\OrderShipping;
 use Modules\Order\Models\ShippingZone;
 use Modules\Outlet\Models\Outlet;
+use Modules\Wallets\Models\Wallet;
 
 class OrderService
 {
@@ -101,6 +102,29 @@ class OrderService
                     'total_amount' => $cartItem->total_amount,
                     'notes' => $cartItem->notes,
                 ]);
+            }
+
+            // Process wallet payment if payment method is wallet
+            if (($data['payment_method'] ?? null) === 'wallet') {
+                $wallet = Wallet::where('customer_id', $cart->customer_id)
+                    ->active()
+                    ->first();
+
+                if (!$wallet || $wallet->available_balance < $order->total_amount) {
+                    throw new \Exception('Insufficient wallet balance.');
+                }
+
+                $wallet->pay(
+                    $order->total_amount,
+                    "Payment for order #{$order->order_number}",
+                    "order_{$order->id}",
+                    [
+                        'order_id' => $order->id,
+                        'source' => 'checkout',
+                    ]
+                );
+
+                $order->update(['payment_status' => PaymentStatusEnum::Paid]);
             }
 
             // Mark cart as converted

@@ -6,6 +6,7 @@ enum TransactionStatusEnum: string
 {
     case Pending = 'pending';
     case Processing = 'processing';
+    case Paid = 'paid';
     case Completed = 'completed';
     case Failed = 'failed';
     case Cancelled = 'cancelled';
@@ -19,6 +20,7 @@ enum TransactionStatusEnum: string
         return match ($this) {
             self::Pending => 'Pending',
             self::Processing => 'Processing',
+            self::Paid => 'Paid',
             self::Completed => 'Completed',
             self::Failed => 'Failed',
             self::Cancelled => 'Cancelled',
@@ -34,6 +36,7 @@ enum TransactionStatusEnum: string
         return match ($this) {
             self::Pending => 'warning',
             self::Processing => 'default',
+            self::Paid => 'success',
             self::Completed => 'success',
             self::Failed => 'destructive',
             self::Cancelled => 'secondary',
@@ -65,7 +68,7 @@ enum TransactionStatusEnum: string
      */
     public function isSuccessful(): bool
     {
-        return $this === self::Completed;
+        return in_array($this, [self::Paid, self::Completed]);
     }
 
     /**
@@ -73,6 +76,6 @@ enum TransactionStatusEnum: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::Completed, self::Failed, self::Cancelled, self::Refunded]);
+        return in_array($this, [self::Paid, self::Completed, self::Failed, self::Cancelled, self::Refunded]);
     }
 }

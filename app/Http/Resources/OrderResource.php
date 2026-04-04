@@ -47,6 +47,7 @@ class OrderResource extends JsonResource
                 'name' => $this->outlet->name,
                 'address' => $this->outlet->address,
                 'phone' => $this->outlet->phone,
+                'logo' => $this->outlet->logo,
                 'google_map_url' => $this->outlet->google_map_url,
                 'latitude' => $this->outlet->latitude ? (float) $this->outlet->latitude : null,
                 'longitude' => $this->outlet->longitude ? (float) $this->outlet->longitude : null,

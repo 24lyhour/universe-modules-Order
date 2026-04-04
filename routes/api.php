@@ -44,6 +44,8 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
         ->name('order.customer.orders.show');
     Route::post('customer/orders', [OrderController::class, 'store'])
         ->name('order.customer.orders.store');
+    Route::post('customer/orders/check-delivery', [OrderController::class, 'checkDelivery'])
+        ->name('order.customer.orders.check-delivery');
     Route::post('customer/orders/{order}/cancel', [OrderController::class, 'cancel'])
         ->name('order.customer.orders.cancel');
 
