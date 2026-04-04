@@ -11,6 +11,7 @@ enum PaymentMethodEnum: string
     case PayPal = 'paypal';
     case Stripe = 'stripe';
     case COD = 'cod';
+    case PayWay = 'aba_payway';
 
     /**
      * Get the label for the payment method.
@@ -25,6 +26,7 @@ enum PaymentMethodEnum: string
             self::PayPal => 'PayPal',
             self::Stripe => 'Stripe',
             self::COD => 'Cash on Delivery',
+            self::PayWay => 'ABA PayWay',
         };
     }
 
@@ -41,6 +43,7 @@ enum PaymentMethodEnum: string
             self::PayPal => 'Wallet',
             self::Stripe => 'CreditCard',
             self::COD => 'Truck',
+            self::PayWay => 'Building',
         };
     }
 
@@ -71,7 +74,7 @@ enum PaymentMethodEnum: string
      */
     public function isOnline(): bool
     {
-        return in_array($this, [self::Card, self::PayPal, self::Stripe, self::DigitalWallet]);
+        return in_array($this, [self::Card, self::PayPal, self::Stripe, self::DigitalWallet, self::PayWay]);
     }
 
     /**

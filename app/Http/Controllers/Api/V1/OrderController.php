@@ -151,10 +151,94 @@ class OrderController extends Controller
 
         $order->load(['items.product', 'outlet', 'shipping']);
 
-        return response()->json([
+        $responseData = [
             'message' => 'Order placed successfully.',
             'data' => new OrderResource($order),
-        ], 201);
+        ];
+
+        // If payment method is PayWay, initiate payment
+        if ($request->payment_method === 'aba_payway') {
+            try {
+                $payWayService = app(\Modules\Payment\Services\PayWayService::class);
+                $tranId = $payWayService->generateTranId($order->id);
+
+                // Create pending transaction
+                $transaction = $order->transactions()->create([
+                    'type' => \Modules\Order\Models\Transaction::TYPE_PAYMENT,
+                    'payment_method' => 'aba_payway',
+                    'amount' => $order->total_amount,
+                    'net_amount' => $order->total_amount,
+                    'currency' => 'USD',
+                    'status' => 'pending',
+                    'customer_id' => $customer->id,
+                    'gateway_transaction_id' => $tranId,
+                ]);
+
+                // Build items
+                $items = $order->items->map(fn ($item) => [
+                    'name' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'price' => (float) $item->unit_price,
+                ])->toArray();
+
+                // Call PayWay API
+                $result = $payWayService->createPurchase([
+                    'tran_id' => $tranId,
+                    'amount' => (float) $order->total_amount,
+                    'firstname' => $customer->name ?? '',
+                    'email' => $customer->email ?? '',
+                    'phone' => $customer->phone ?? '',
+                    'payment_option' => 'abapay_khqr_deeplink',
+                    'currency' => 'USD',
+                    'items' => $items,
+                    'return_params' => $order->uuid,
+                ]);
+
+                if ($result['success']) {
+                    $transaction->update([
+                        'status' => 'processing',
+                        'gateway_response' => $result['data'],
+                    ]);
+
+                    // Generate branded KHQR QR image
+                    $qrResult = $payWayService->generateQr([
+                        'tran_id' => $tranId,
+                        'amount' => (float) $order->total_amount,
+                        'firstname' => $customer->name ?? '',
+                        'email' => $customer->email ?? '',
+                        'phone' => $customer->phone ?? '',
+                        'currency' => 'USD',
+                        'items' => $items,
+                        'return_params' => $order->uuid,
+                        'qr_image_template' => 'template3_color',
+                    ]);
+
+                    $responseData['payway'] = [
+                        'tran_id' => $tranId,
+                        'abapay_deeplink' => $result['data']['abapay_deeplink'] ?? null,
+                        'qr_string' => $qrResult['success']
+                            ? ($qrResult['data']['qrString'] ?? null)
+                            : ($result['data']['qrString'] ?? $result['data']['qr_string'] ?? null),
+                        'qr_image' => $qrResult['success']
+                            ? ($qrResult['data']['qrImage'] ?? null)
+                            : ($result['data']['qrImage'] ?? $result['data']['qr_image'] ?? null),
+                        'app_store' => $result['data']['app_store'] ?? null,
+                        'play_store' => $result['data']['play_store'] ?? null,
+                    ];
+                } else {
+                    $transaction->markAsFailed(
+                        $result['error'] ?? 'PayWay API failed',
+                        $result['data'] ?? []
+                    );
+                    $responseData['payway_error'] = $result['error'] ?? 'Payment initiation failed';
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('PayWay initiation failed', ['error' => $e->getMessage()]);
+                $responseData['payway_error'] = 'Payment service unavailable';
+            }
+        }
+
+        return response()->json($responseData, 201);
     }
 
     /**
