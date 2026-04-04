@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Order\Http\Controllers\Api\V1\CartController;
+use Modules\Order\Http\Controllers\Api\V1\OrderController;
 use Modules\Order\Http\Controllers\Api\V1\OutletReviewController;
 use Modules\Order\Http\Controllers\Api\V1\ProductReviewController;
 
@@ -36,6 +37,16 @@ Route::prefix('v1')->group(function () {
 
 // Protected routes (auth required)
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+    // ==================== ORDERS ====================
+    Route::get('customer/orders', [OrderController::class, 'index'])
+        ->name('order.customer.orders');
+    Route::get('customer/orders/{order}', [OrderController::class, 'show'])
+        ->name('order.customer.orders.show');
+    Route::post('customer/orders', [OrderController::class, 'store'])
+        ->name('order.customer.orders.store');
+    Route::post('customer/orders/{order}/cancel', [OrderController::class, 'cancel'])
+        ->name('order.customer.orders.cancel');
+
     // ==================== CART ====================
     Route::get('customer/cart', [CartController::class, 'index'])
         ->name('order.customer.cart');
