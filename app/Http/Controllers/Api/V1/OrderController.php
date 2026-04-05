@@ -160,6 +160,13 @@ class OrderController extends Controller
         if ($request->payment_method === 'aba_payway') {
             try {
                 $payWayService = app(\Modules\Payment\Services\PayWayService::class);
+
+                // Use outlet's own merchant credentials if available
+                $outlet = $order->outlet;
+                if ($outlet && $outlet->hasPayWay()) {
+                    $payWayService->forOutlet($outlet);
+                }
+
                 $tranId = $payWayService->generateTranId($order->id);
 
                 // Create pending transaction
