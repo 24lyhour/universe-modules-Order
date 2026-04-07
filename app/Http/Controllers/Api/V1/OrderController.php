@@ -5,6 +5,7 @@ namespace Modules\Order\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Order\Enums\TransactionStatusEnum;
 use Modules\Order\Http\Resources\OrderResource;
 use Modules\Order\Models\Order;
 use Modules\Order\Services\OrderService;
@@ -135,7 +136,7 @@ class OrderController extends Controller
 
         // Create shipping record from customer's selected address
         if ($address) {
-            $this->orderService->createShipping($order, [
+            $shipping = $this->orderService->createShipping($order, [
                 'recipient_name' => $address->recipient_name,
                 'phone' => $address->phone_number,
                 'street_1' => $address->street_address,
@@ -147,6 +148,14 @@ class OrderController extends Controller
                 'latitude' => $address->latitude,
                 'longitude' => $address->longitude,
             ]);
+
+            // Add delivery fee to order total
+            if ($shipping->shipping_cost > 0) {
+                $order->update([
+                    'total_amount' => $order->total_amount + $shipping->shipping_cost,
+                ]);
+                $order->refresh();
+            }
         }
 
         $order->load(['items.product', 'outlet', 'shipping']);
@@ -217,7 +226,7 @@ class OrderController extends Controller
                         'currency' => 'USD',
                         'items' => $items,
                         'return_params' => $order->uuid,
-                        'qr_image_template' => 'template3_color',
+                        'qr_image_template' => 'template4_color',
                     ]);
 
                     $responseData['payway'] = [
@@ -302,6 +311,18 @@ class OrderController extends Controller
         }
 
         $this->orderService->updateStatus($order, 'cancelled');
+
+        // Cancel any pending/processing payment transactions
+        $order->transactions()
+            ->whereIn('status', [
+                TransactionStatusEnum::Pending,
+                TransactionStatusEnum::Processing,
+            ])
+            ->update([
+                'status' => TransactionStatusEnum::Cancelled,
+                'failure_reason' => 'Payment cancelled by customer',
+                'failed_at' => now(),
+            ]);
 
         return response()->json([
             'message' => 'Order cancelled successfully.',
