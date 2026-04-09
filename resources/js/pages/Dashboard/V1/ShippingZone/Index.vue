@@ -294,7 +294,11 @@ const stats = computed(() => ({
                                 </Badge>
                             </div>
                             <div v-if="zone.zone_type === 'circle' && zone.radius" class="text-muted-foreground">
-                                Radius: {{ zone.radius >= 1000 ? `${(zone.radius / 1000).toFixed(1)}km` : `${zone.radius}m` }}
+                                Radius: {{ zone.radius >= 1000 ? `${(zone.radius / 1000).toFixed(1)} km` : `${zone.radius} m` }}
+                                <span v-if="zone.area_km2"> · {{ zone.area_km2 >= 1 ? `${zone.area_km2} km²` : `${(zone.area_km2 * 1000000).toFixed(0)} m²` }}</span>
+                            </div>
+                            <div v-else-if="zone.zone_type === 'polygon' && zone.area_km2" class="text-muted-foreground">
+                                Area: {{ zone.area_km2 >= 1 ? `${zone.area_km2} km²` : `${(zone.area_km2 * 1000000).toFixed(0)} m²` }}
                             </div>
                         </div>
                     </template>

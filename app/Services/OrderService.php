@@ -23,7 +23,7 @@ class OrderService
     public function paginate(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         $query = Order::query()
-            ->with(['customer', 'outlet'])
+            ->with(['customer', 'outlet', 'shipping'])
             ->withCount('items');
 
         // Search filter

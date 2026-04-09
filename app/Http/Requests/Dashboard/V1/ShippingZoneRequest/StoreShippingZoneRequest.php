@@ -34,8 +34,8 @@ class StoreShippingZoneRequest extends FormRequest
             'priority' => ['nullable', 'integer', 'min:0'],
 
             // Geofence
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'latitude' => ['nullable', 'required_if:zone_type,circle', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_if:zone_type,circle', 'numeric', 'between:-180,180'],
             'radius' => ['nullable', 'required_if:zone_type,circle', 'integer', 'min:50', 'max:100000'],
             'polygon_coordinates' => ['nullable', 'required_if:zone_type,polygon', 'array', 'min:3'],
 

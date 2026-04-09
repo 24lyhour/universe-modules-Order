@@ -172,14 +172,6 @@ class ShippingZone extends Model
     }
 
     /**
-     * Scope to filter by outlet.
-     */
-    public function scopeForOutlet($query, int $outletId)
-    {
-        return $query->where('outlet_id', $outletId);
-    }
-
-    /**
      * Scope to filter by vehicle type.
      */
     public function scopeForVehicle($query, string $vehicleType)
@@ -358,7 +350,10 @@ class ShippingZone extends Model
      */
     public static function findZonesForPoint(float $lat, float $lng, ?int $outletId = null): \Illuminate\Database\Eloquent\Collection
     {
-        $query = static::active()->byPriority()->with('outlet');
+        $query = static::allRecords()
+            ->where('is_active', true)
+            ->orderBy('priority', 'asc')
+            ->with('outlet');
 
         if ($outletId) {
             $query->where('outlet_id', $outletId);
