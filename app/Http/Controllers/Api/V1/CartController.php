@@ -28,6 +28,13 @@ class CartController extends Controller
         $cart = $this->cartService->getOrCreateForCustomer($customer->id);
         $cart->load(['items.product', 'outlet']);
 
+        // Remove cart items whose product was deleted
+        $orphanedItems = $cart->items->filter(fn (CartItem $item) => $item->product === null);
+        if ($orphanedItems->isNotEmpty()) {
+            CartItem::whereIn('id', $orphanedItems->pluck('id'))->delete();
+            $cart->load(['items.product']); // reload after cleanup
+        }
+
         return response()->json([
             'data' => $cart->items->map(function (CartItem $item) {
                 $product = $item->product;
