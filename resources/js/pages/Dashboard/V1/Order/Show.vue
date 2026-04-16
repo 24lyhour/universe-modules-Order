@@ -15,6 +15,7 @@ import {
     ChefHat,
     PackageCheck,
     RotateCcw,
+    CreditCard,
 } from 'lucide-vue-next';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -24,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/composables/useToast';
 import { ModalConfirm } from '@/components/shared';
-import { OrderShippingWidget } from '@order/Components/Dashboard/V1/Widgets/OrderActionFormWidget';
+import { OrderShippingWidget } from '@order/Components/Dashboard/v1/Widgets/OrderActionFormWidget';
 import type { OrderItem } from '@order/types';
 
 defineOptions({
@@ -484,10 +485,56 @@ const getProgressPercent = (status: string): number => {
                             <span class="text-muted-foreground">Tax</span>
                             <span>{{ formatCurrency(order.tax_amount) }}</span>
                         </div>
+                        <div v-if="order.delivery_fee > 0" class="flex justify-between">
+                            <span class="text-muted-foreground">Delivery Fee</span>
+                            <span>{{ formatCurrency(order.delivery_fee) }}</span>
+                        </div>
                         <Separator />
                         <div class="flex justify-between text-lg font-bold">
                             <span>Total</span>
                             <span>{{ formatCurrency(order.total_amount) }}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Payment Info -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <CreditCard class="h-5 w-5" />
+                            Payment
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-muted-foreground">Method</span>
+                            <span class="text-sm font-medium capitalize">{{ order.payment_method?.replace('_', ' ') || 'N/A' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-muted-foreground">Status</span>
+                            <Badge :variant="getPaymentStatusVariant(order.payment_status)" class="capitalize text-xs">
+                                {{ order.payment_status }}
+                            </Badge>
+                        </div>
+                        <Separator />
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-muted-foreground">Items</span>
+                            <span class="text-sm font-medium">{{ formatCurrency(order.subtotal) }}</span>
+                        </div>
+                        <div v-if="order.delivery_fee > 0" class="flex justify-between items-center">
+                            <span class="text-sm text-muted-foreground flex items-center gap-1">
+                                <Truck class="h-3 w-3" /> Delivery
+                            </span>
+                            <span class="text-sm font-medium">{{ formatCurrency(order.delivery_fee) }}</span>
+                        </div>
+                        <div v-if="order.discount_amount > 0" class="flex justify-between items-center">
+                            <span class="text-sm text-muted-foreground">Discount</span>
+                            <span class="text-sm font-medium text-red-500">-{{ formatCurrency(order.discount_amount) }}</span>
+                        </div>
+                        <Separator />
+                        <div class="flex justify-between items-center font-bold">
+                            <span>Total Paid</span>
+                            <span class="text-primary">{{ formatCurrency(order.total_amount) }}</span>
                         </div>
                     </CardContent>
                 </Card>

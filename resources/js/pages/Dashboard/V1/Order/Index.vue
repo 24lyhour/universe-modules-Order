@@ -405,10 +405,26 @@ const getCardActions = (order: OrderItem): CardAction[] => [
                             </div>
                         </template>
 
-                        <!-- Footer Left: Amount + Items -->
+                        <!-- Footer Left: Amount + Delivery + Items -->
                         <template #footer-left>
                             <div class="flex items-center gap-3">
-                                <span class="font-bold text-lg tabular-nums">{{ formatCurrency(order.total_amount ?? 0) }}</span>
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-lg tabular-nums">{{ formatCurrency(order.total_amount ?? 0) }}</span>
+                                    <div v-if="order.delivery_fee > 0" class="flex items-center gap-1.5">
+                                        <span class="text-xs text-muted-foreground tabular-nums">
+                                            <Truck class="inline h-3 w-3 mr-0.5" />
+                                            {{ formatCurrency(order.delivery_fee) }}
+                                        </span>
+                                        <span :class="[
+                                            'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                                            order.payment_status === 'paid'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : 'bg-yellow-100 text-yellow-700'
+                                        ]">
+                                            {{ order.payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
+                                        </span>
+                                    </div>
+                                </div>
                                 <Badge variant="outline" class="text-xs tabular-nums">
                                     <Package class="h-3 w-3 mr-1" />
                                     {{ order.items_count ?? 0 }}

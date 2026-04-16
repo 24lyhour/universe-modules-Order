@@ -9,6 +9,7 @@ export interface OrderItem {
     subtotal: number;
     discount_amount: number;
     tax_amount: number;
+    delivery_fee: number;
     total_amount: number;
     status: OrderStatus;
     payment_status: PaymentStatus;
@@ -299,10 +300,11 @@ export interface ShippingZone {
     description: string | null;
     color: string;
     zone_type: ZoneType;
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
     radius: number | null;
     polygon_coordinates: [number, number][] | null;
+    area_km2?: number | null;
     // Pricing
     delivery_fee: number;
     min_order_amount: number;

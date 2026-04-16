@@ -10,6 +10,52 @@ class ShippingZoneResource extends JsonResource
     /**
      * Transform the resource into an array.
      */
+    /**
+     * Calculate area in km² for both circle and polygon zones.
+     */
+    protected function calculateAreaKm2(): ?float
+    {
+        if ($this->zone_type?->value === 'circle' && $this->radius) {
+            // Circle: π * r² (radius in meters → convert to km)
+            $radiusKm = $this->radius / 1000;
+            return round(M_PI * $radiusKm * $radiusKm, 2);
+        }
+
+        if ($this->zone_type?->value === 'polygon' && $this->polygon_coordinates) {
+            return $this->calculatePolygonAreaKm2();
+        }
+
+        return null;
+    }
+
+    /**
+     * Calculate polygon area in km² using the Shoelace formula with lat/lng.
+     */
+    protected function calculatePolygonAreaKm2(): float
+    {
+        $coords = $this->polygon_coordinates;
+        if (!$coords || count($coords) < 3) {
+            return 0;
+        }
+
+        $n = count($coords);
+        $area = 0;
+
+        for ($i = 0; $i < $n; $i++) {
+            $j = ($i + 1) % $n;
+            $lat1 = deg2rad($coords[$i][0]);
+            $lng1 = deg2rad($coords[$i][1]);
+            $lat2 = deg2rad($coords[$j][0]);
+            $lng2 = deg2rad($coords[$j][1]);
+
+            $area += ($lng2 - $lng1) * (2 + sin($lat1) + sin($lat2));
+        }
+
+        $area = abs($area) * 6371 * 6371 / 2;
+
+        return round($area, 2);
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -24,6 +70,7 @@ class ShippingZoneResource extends JsonResource
             'longitude' => (float) $this->longitude,
             'radius' => $this->radius,
             'polygon_coordinates' => $this->polygon_coordinates,
+            'area_km2' => $this->calculateAreaKm2(),
             // Pricing
             'delivery_fee' => (float) $this->delivery_fee,
             'min_order_amount' => (float) $this->min_order_amount,
