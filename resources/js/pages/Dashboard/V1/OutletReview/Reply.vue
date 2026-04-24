@@ -5,7 +5,7 @@ import { useModal } from 'momentum-modal';
 import { ModalForm } from '@/components/shared';
 import { useTranslation } from '@/composables/useTranslation';
 import { toast } from 'vue-sonner';
-import { ReplyFormWidget } from '@modules/Order/resources/js/Components/Dashboard/V1/Widgets/ReplyFormWidget';
+import { ReplyFormWidget } from '@order/Components/Dashboard/v1/Widgets/ReplyFormWidget';
 
 const { __ } = useTranslation();
 const { show, close, redirect } = useModal();

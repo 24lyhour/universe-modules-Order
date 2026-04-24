@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ReviewStatsWidget, ReviewCard } from '@modules/Order/resources/js/Components/Dashboard/V1/Widgets/ReplyFormWidget';
+import { ReviewStatsWidget, ReviewCard } from '@order/Components/Dashboard/v1/Widgets/ReplyFormWidget';
 
 const { __ } = useTranslation();
 
