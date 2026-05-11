@@ -2,9 +2,10 @@
 
 namespace Modules\Order\Providers;
 
-use App\Services\MenuService;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Modules\Order\Http\Middleware\DashboardMiddlewareHandle;
 use Modules\Order\Console\Commands\CartCreateCommand;
 use Modules\Order\Console\Commands\CartListCommand;
 use Modules\Order\Console\Commands\CartStatsCommand;
@@ -37,86 +38,18 @@ class OrderServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
-        $this->registerMenuItems();
+        $this->registerDashboardMiddleware();
     }
 
     /**
-     * Register menu items for the Order module.
+     * Sidebar entries are registered in DashboardMiddlewareHandle so they
+     * only run on dashboard requests, not API/console.
      */
-    protected function registerMenuItems(): void
+    protected function registerDashboardMiddleware(): void
     {
-        $this->app->booted(function () {
-            // Add main menu item
-            MenuService::addMenuItem(
-                'primary',
-                'order',
-                __('Orders'),
-                route('order.orders.index'),
-                'ShoppingBag',
-                60,
-                'orders.view_any',
-                'order.*'
-            );
-
-            // All Orders submenu
-            MenuService::addSubmenuItem(
-                'primary',
-                'order',
-                __('All Orders'),
-                route('order.orders.index'),
-                1,
-                'orders.view_any',
-                'order.orders.*',
-                'Package'
-            );
-
-            // Carts submenu
-            MenuService::addSubmenuItem(
-                'primary',
-                'order',
-                __('Carts'),
-                route('order.carts.index'),
-                2,
-                'carts.view_any',
-                'order.carts.*',
-                'ShoppingCart'
-            );
-
-            // Product Reviews submenu
-            MenuService::addSubmenuItem(
-                'primary',
-                'order',
-                __('Product Reviews'),
-                route('order.product-reviews.index'),
-                3,
-                'product_reviews.view_any',
-                'order.product-reviews.*',
-                'Star'
-            );
-
-            // Outlet Reviews submenu
-            MenuService::addSubmenuItem(
-                'primary',
-                'order',
-                __('Outlet Reviews'),
-                route('order.outlet-reviews.index'),
-                4,
-                'outlet_reviews.view_any',
-                'order.outlet-reviews.*',
-                'Store'
-            );
-              // Shipping Zones submenu
-            MenuService::addSubmenuItem(
-                'primary',
-                'order',
-                __('Shipping Zones'),
-                route('order.shipping-zones.index'),
-                5,
-                'shipping_zones.view_any',
-                'order.shipping-zones.*',
-                'MapPin'
-            );
-        });
+        /** @var \Illuminate\Foundation\Http\Kernel $kernel */
+        $kernel = $this->app->make(HttpKernel::class);
+        $kernel->prependMiddlewareToGroup('web', DashboardMiddlewareHandle::class);
     }
 
     /**
